@@ -1,23 +1,54 @@
 # The Weather App
 
-A clean, ad-free iOS weather app built with SwiftUI.
+A clean, ad-free native iOS weather app built with SwiftUI.
 
-## Product direction
+The product goal is intentionally simple:
 
-The app is intentionally simple: open it, understand the weather immediately, inspect anything interesting, and leave.
+> Open the app, understand the weather immediately, inspect anything interesting, and leave.
 
-The source policy is explicit:
+## Current status
 
-- **National Weather Service (NWS)** — primary U.S. forecasts, official alerts, and nearby station observations.
-- **NOAA/NCEP** — radar imagery and precipitation visualization.
-- **Apple WeatherKit** — narrowly scoped supplemental products such as next-hour precipitation, UV, and solar data.
-- **No homemade meteorology** — provider-supplied values are displayed with source and freshness metadata.
+The complete non-provider product shell is implemented on `feat/initial-weather-app`.
 
-Live providers are deliberately kept behind adapters so the complete product can be built and reviewed with deterministic mock data before provider entitlements are enabled.
+Implemented:
+
+- Today dashboard with current conditions, provider freshness, feels-like, next-hour precipitation, hourly forecast, daily forecast, radar preview, and tappable metric details.
+- Daily and hourly Forecast modes with charts, day details, and hour details.
+- Native MapKit Radar surface with timeline/playback controls, product availability, and Reduce Motion behavior.
+- Places with current-location refresh, city/ZIP search, saved-place persistence, rename, reorder, and removal.
+- First-run location/search onboarding.
+- Official weather alert list and detail surfaces.
+- U.S./Metric display units with canonical internal units.
+- Light, Dark, and System appearance.
+- Product-level available / unsupported / unavailable states.
+- Automatic stale-data refresh when the app returns to the foreground.
+- Source/freshness diagnostics.
+- Provider adapters and repository boundaries for NWS, NOAA radar, and WeatherKit.
+- Unit and repository tests covering source policy, persistence, fallback behavior, request contracts, location races, and saved-place rules.
+- CI that builds the app, runs tests on an iPhone Simulator, and captures visual smoke screenshots.
+
+Live provider mapping remains intentionally disabled behind `PreviewWeatherRepository`.
+
+## Weather source policy
+
+| Product | Planned source |
+| --- | --- |
+| Current conditions | National Weather Service observation |
+| Hourly forecast | National Weather Service forecast/grid |
+| Daily forecast | National Weather Service forecast |
+| Official alerts | National Weather Service |
+| Radar | NOAA/NCEP |
+| Next-hour precipitation | Apple WeatherKit |
+| UV | Apple WeatherKit |
+| Sunrise / sunset | Apple WeatherKit |
+
+The app does **not** average forecasts or manufacture missing meteorological values.
+
+Provider data is normalized into one internal unit basis. The U.S./Metric preference is a display conversion only.
 
 ## Development
 
-The project definition is kept in `project.yml` using XcodeGen.
+The project is defined with XcodeGen:
 
 ```bash
 brew install xcodegen
@@ -27,8 +58,7 @@ open WeatherApp.xcodeproj
 
 The app currently targets iOS 17+.
 
-## Architecture
+See:
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
-Development is being implemented in small, reviewable commits on `feat/initial-weather-app`.
+- [Architecture](docs/ARCHITECTURE.md)
+- [Live data activation checklist](docs/LIVE_DATA_CHECKLIST.md)
