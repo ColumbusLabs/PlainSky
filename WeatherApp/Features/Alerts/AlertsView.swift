@@ -3,6 +3,10 @@ import SwiftUI
 struct AlertsView: View {
     @Environment(WeatherStore.self) private var store
 
+    private var alertAvailability: WeatherProductAvailability {
+        store.snapshot.availability(for: .alerts)
+    }
+
     var body: some View {
         ZStack {
             WeatherBackdrop(style: store.snapshot.alerts.isEmpty ? .clear : .rain)
@@ -14,7 +18,13 @@ struct AlertsView: View {
                             .accessibilityHint(error)
                     }
 
-                    if store.snapshot.alerts.isEmpty {
+                    if let message = alertAvailability.message {
+                        WeatherUnavailableCard(
+                            title: "Alert status unavailable",
+                            message: message,
+                            icon: "exclamationmark.shield.fill"
+                        )
+                    } else if store.snapshot.alerts.isEmpty {
                         emptyState
                     } else {
                         activeAlertHeader
@@ -77,13 +87,13 @@ struct AlertsView: View {
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(WeatherTheme.primaryText)
 
-                    Text("There are no alert products in the currently loaded weather snapshot for \(store.snapshot.location.displayName).")
+                    Text("The latest successful National Weather Service alert check returned no active alerts for \(store.snapshot.location.displayName).")
                         .font(.subheadline)
                         .foregroundStyle(WeatherTheme.secondaryText)
                         .multilineTextAlignment(.center)
                 }
 
-                Text("A failed refresh is shown separately and is never converted into an all-clear.")
+                Text("Provider failures are shown as unavailable and are never converted into an all-clear.")
                     .font(.caption)
                     .foregroundStyle(WeatherTheme.tertiaryText)
                     .multilineTextAlignment(.center)

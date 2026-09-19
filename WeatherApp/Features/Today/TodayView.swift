@@ -30,6 +30,15 @@ struct TodayView: View {
                         today: store.snapshot.daily.first
                     )
 
+                    if store.snapshot.alerts.isEmpty,
+                       let alertMessage = store.snapshot.availability(for: .alerts).message {
+                        WeatherUnavailableCard(
+                            title: "Alert status unavailable",
+                            message: alertMessage,
+                            icon: "exclamationmark.shield.fill"
+                        )
+                    }
+
                     ForEach(store.snapshot.alerts.prefix(2)) { alert in
                         NavigationLink {
                             AlertDetailView(alert: alert)
@@ -191,16 +200,29 @@ private struct TodayLocationHeader: View {
                                 .fill(.red)
                                 .frame(width: 9, height: 9)
                                 .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
+                        } else if store.snapshot.availability(for: .alerts).message != nil {
+                            Circle()
+                                .fill(.orange)
+                                .frame(width: 9, height: 9)
+                                .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
                         }
                     }
                 }
-                .accessibilityLabel(
-                    store.snapshot.alerts.isEmpty
-                        ? "Weather alerts"
-                        : "\(store.snapshot.alerts.count) active weather alerts"
-                )
+                .accessibilityLabel(alertAccessibilityLabel)
             }
         }
         .padding(.top, 4)
+    }
+
+    private var alertAccessibilityLabel: String {
+        if !store.snapshot.alerts.isEmpty {
+            return "\(store.snapshot.alerts.count) active weather alerts"
+        }
+
+        if store.snapshot.availability(for: .alerts).message != nil {
+            return "Weather alert status unavailable"
+        }
+
+        return "Weather alerts"
     }
 }
