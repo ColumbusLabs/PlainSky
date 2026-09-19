@@ -10,6 +10,7 @@ on:
 jobs:
   build:
     runs-on: macos-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -45,22 +46,29 @@ jobs:
               )
           )
 
-          for runtime in sorted(payload["devices"].keys(), reverse=True):
-              for device in payload["devices"][runtime]:
-                  if device.get("isAvailable") and device["name"].startswith("iPhone"):
+          preferred = ["iPhone 17 Pro Max", "iPhone 17 Pro", "iPhone 16 Pro Max", "iPhone 16 Pro"]
+          devices = [
+              device
+              for runtime in sorted(payload["devices"].keys(), reverse=True)
+              for device in payload["devices"][runtime]
+              if device.get("isAvailable") and device["name"].startswith("iPhone")
+          ]
+
+          for name in preferred:
+              for device in devices:
+                  if device["name"] == name:
                       print(device["udid"])
                       raise SystemExit(0)
+
+          if devices:
+              print(devices[0]["udid"])
+              raise SystemExit(0)
 
           raise SystemExit("No available iPhone simulator found")
           PY
           )"
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
           echo "Using simulator $UDID"
-
-      - name: Boot simulator
-        run: |
-          xcrun simctl boot "${{ steps.simulator.outputs.udid }}" || true
-          xcrun simctl bootstatus "${{ steps.simulator.outputs.udid }}" -b
 
       - name: Run unit tests
         run: |
@@ -71,6 +79,12 @@ jobs:
             -destination "id=${{ steps.simulator.outputs.udid }}" \
             -derivedDataPath DerivedDataTests \
             test
+
+      - name: Prepare simulator for visual smoke test
+        run: |
+          UDID="${{ steps.simulator.outputs.udid }}"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
 
       - name: Capture visual smoke screenshots
         run: |
