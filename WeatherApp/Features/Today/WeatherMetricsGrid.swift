@@ -4,6 +4,8 @@ struct WeatherMetricsGrid: View {
     let current: CurrentConditions
     let solar: SolarWeather?
 
+    @State private var selectedMetric: WeatherMetric?
+
     private let columns = [
         GridItem(.flexible(), spacing: 12),
         GridItem(.flexible(), spacing: 12)
@@ -11,7 +13,8 @@ struct WeatherMetricsGrid: View {
 
     var body: some View {
         LazyVGrid(columns: columns, spacing: 12) {
-            MetricCard(
+            metricButton(
+                .wind,
                 icon: "wind",
                 title: "Wind",
                 value: WeatherFormatters.wind(
@@ -21,42 +24,89 @@ struct WeatherMetricsGrid: View {
                 detail: current.windGust.map { "Gusts \(Int($0.rounded())) mph" }
             )
 
-            MetricCard(
+            metricButton(
+                .humidity,
                 icon: "humidity.fill",
                 title: "Humidity",
                 value: WeatherFormatters.percent(current.humidity),
                 detail: current.dewPoint.map { "Dew point \(WeatherFormatters.temperature($0))" }
             )
 
-            MetricCard(
+            metricButton(
+                .uv,
                 icon: "sun.max.fill",
                 title: "UV index",
                 value: solar?.uvIndex.map(String.init) ?? "—",
-                detail: "Apple Weather"
+                detail: solar == nil ? "Unavailable" : solar?.source.provider.rawValue
             )
 
-            MetricCard(
+            metricButton(
+                .sun,
                 icon: "sunset.fill",
                 title: "Sunset",
                 value: solar?.sunset.map(WeatherFormatters.hour) ?? "—",
                 detail: solar?.sunrise.map { "Sunrise \(WeatherFormatters.hour($0))" }
             )
 
-            MetricCard(
+            metricButton(
+                .visibility,
                 icon: "eye.fill",
                 title: "Visibility",
                 value: WeatherFormatters.visibility(current.visibilityMiles),
                 detail: current.source.sourceName
             )
 
-            MetricCard(
+            metricButton(
+                .pressure,
                 icon: "gauge.with.dots.needle.33percent",
                 title: "Pressure",
                 value: WeatherFormatters.pressure(current.pressureMillibars),
-                detail: "Station observation"
+                detail: current.source.provider.rawValue
             )
         }
+        .sheet(item: $selectedMetric) { metric in
+            WeatherMetricDetailSheet(
+                metric: metric,
+                current: current,
+                solar: solar
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
     }
+
+    @ViewBuilder
+    private func metricButton(
+        _ metric: WeatherMetric,
+        icon: String,
+        title: String,
+        value: String,
+        detail: String?
+    ) -> some View {
+        Button {
+            selectedMetric = metric
+        } label: {
+            MetricCard(
+                icon: icon,
+                title: title,
+                value: value,
+                detail: detail
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Opens \(title.lowercased()) details")
+    }
+}
+
+enum WeatherMetric: String, Identifiable {
+    case wind
+    case humidity
+    case uv
+    case sun
+    case visibility
+    case pressure
+
+    var id: Self { self }
 }
 
 private struct MetricCard: View {
@@ -77,6 +127,10 @@ private struct MetricCard: View {
                     .foregroundStyle(WeatherTheme.secondaryText)
 
                 Spacer()
+
+                Image(systemName: "chevron.up")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(WeatherTheme.tertiaryText)
             }
 
             Text(value)
