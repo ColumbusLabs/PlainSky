@@ -3,6 +3,13 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(WeatherStore.self) private var store
 
+    private var appearanceBinding: Binding<AppAppearance> {
+        Binding(
+            get: { store.appearance },
+            set: { store.appearance = $0 }
+        )
+    }
+
     var body: some View {
         ZStack {
             WeatherBackdrop(style: .night)
@@ -13,7 +20,7 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 14) {
                             SectionHeader(title: "Appearance")
 
-                            Picker("Appearance", selection: $store.appearance) {
+                            Picker("Appearance", selection: appearanceBinding) {
                                 ForEach(AppAppearance.allCases) { appearance in
                                     Text(appearance.title).tag(appearance)
                                 }

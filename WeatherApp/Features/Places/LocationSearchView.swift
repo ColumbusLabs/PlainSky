@@ -1,4 +1,4 @@
-import MapKit
+@preconcurrency import MapKit
 import Observation
 import SwiftUI
 
@@ -70,6 +70,7 @@ struct LocationSearchResult: Identifiable, Hashable {
 final class LocationSearchModel: NSObject, MKLocalSearchCompleterDelegate {
     var query = "" {
         didSet {
+            isSearching = !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             completer.queryFragment = query
         }
     }
