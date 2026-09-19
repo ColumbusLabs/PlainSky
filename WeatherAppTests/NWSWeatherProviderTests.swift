@@ -22,10 +22,15 @@ final class NWSWeatherProviderTests: XCTestCase {
             )
         )
 
-        XCTAssertEqual(payload.current?.source.sourceName, "Fresh Station (KFRESH)")
-        XCTAssertEqual(payload.current?.temperature, 68, accuracy: 0.01)
+        let current = try XCTUnwrap(payload.current)
+        XCTAssertEqual(current.source.sourceName, "Fresh Station (KFRESH)")
+        XCTAssertEqual(current.temperature, 68, accuracy: 0.01)
         XCTAssertEqual(payload.hourly.count, 1)
-        XCTAssertEqual(payload.hourly[0].apparentTemperature, 71.6, accuracy: 0.01)
+        XCTAssertEqual(
+            try XCTUnwrap(payload.hourly[0].apparentTemperature),
+            71.6,
+            accuracy: 0.01
+        )
         XCTAssertEqual(payload.daily.count, 1)
         XCTAssertEqual(payload.daily[0].daytimeHigh, 79)
         XCTAssertEqual(payload.daily[0].overnightLow, 61)
