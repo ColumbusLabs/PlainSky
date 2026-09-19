@@ -1,13 +1,13 @@
 import SwiftUI
 
 enum WeatherTheme {
-    static let accent = Color(red: 0.31, green: 0.72, blue: 0.98)
-    static let primaryText = Color.white
-    static let secondaryText = Color.white.opacity(0.70)
-    static let tertiaryText = Color.white.opacity(0.48)
-    static let cardFill = Color.white.opacity(0.06)
-    static let cardStroke = Color.white.opacity(0.12)
-    static let divider = Color.white.opacity(0.10)
+    static let accent = Color(red: 0.20, green: 0.58, blue: 0.96)
+    static let primaryText = Color.primary
+    static let secondaryText = Color.secondary
+    static let tertiaryText = Color.secondary.opacity(0.72)
+    static let cardFill = Color.primary.opacity(0.025)
+    static let cardStroke = Color.primary.opacity(0.10)
+    static let divider = Color.primary.opacity(0.09)
 
     static let horizontalPadding: CGFloat = 20
     static let cardRadius: CGFloat = 24

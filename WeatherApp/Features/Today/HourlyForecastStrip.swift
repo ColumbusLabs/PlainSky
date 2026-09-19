@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HourlyForecastStrip: View {
     @Environment(WeatherStore.self) private var store
+    @ScaledMetric(relativeTo: .body) private var cellWidth: CGFloat = 67
 
     let items: [HourlyForecastItem]
     var onSeeAll: (() -> Void)?
@@ -46,7 +47,13 @@ struct HourlyForecastStrip: View {
                                 }
                                 .foregroundStyle(WeatherTheme.accent)
                             }
-                            .frame(width: 67)
+                            .frame(width: max(67, cellWidth))
+                            .accessibilityElement(children: .combine)
+                            .accessibilityLabel(
+                                "\(index == 0 ? "Now" : WeatherFormatters.hour(item.date)), " +
+                                "\(WeatherFormatters.temperature(item.temperature, unitSystem: store.unitSystem)), " +
+                                "precipitation \(WeatherFormatters.percent(item.precipitationChance))"
+                            )
 
                             if index < items.count - 1 {
                                 Divider()

@@ -2,6 +2,8 @@ import SwiftUI
 
 struct CurrentConditionsHero: View {
     @Environment(WeatherStore.self) private var store
+    @ScaledMetric(relativeTo: .largeTitle) private var temperatureSize: CGFloat = 88
+    @ScaledMetric(relativeTo: .title2) private var conditionIconSize: CGFloat = 44
 
     let current: CurrentConditions
     let today: DailyForecastItem?
@@ -10,7 +12,7 @@ struct CurrentConditionsHero: View {
         VStack(spacing: 12) {
             Image(systemName: current.condition.symbolName)
                 .symbolRenderingMode(.multicolor)
-                .font(.system(size: 44, weight: .medium))
+                .font(.system(size: conditionIconSize, weight: .medium))
                 .accessibilityHidden(true)
 
             Text(
@@ -19,10 +21,11 @@ struct CurrentConditionsHero: View {
                     unitSystem: store.unitSystem
                 )
             )
-            .font(.system(size: 88, weight: .thin, design: .rounded))
+            .font(.system(size: temperatureSize, weight: .thin, design: .rounded))
             .foregroundStyle(WeatherTheme.primaryText)
             .contentTransition(.numericText())
-            .minimumScaleFactor(0.65)
+            .minimumScaleFactor(0.55)
+            .lineLimit(1)
             .accessibilityLabel(
                 "Current temperature \(WeatherFormatters.temperature(current.temperature, unitSystem: store.unitSystem))"
             )
@@ -30,23 +33,34 @@ struct CurrentConditionsHero: View {
             Text(current.conditionDescription)
                 .font(.title3.weight(.medium))
                 .foregroundStyle(WeatherTheme.primaryText)
+                .multilineTextAlignment(.center)
 
             if let today {
-                HStack(spacing: 14) {
-                    Label {
-                        Text(
-                            "High \(WeatherFormatters.temperature(today.daytimeHigh, unitSystem: store.unitSystem))"
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 14) {
+                        temperatureFact(
+                            title: "High",
+                            value: today.daytimeHigh,
+                            symbol: "arrow.up"
                         )
-                    } icon: {
-                        Image(systemName: "arrow.up")
+                        temperatureFact(
+                            title: "Low",
+                            value: today.overnightLow,
+                            symbol: "arrow.down"
+                        )
                     }
 
-                    Label {
-                        Text(
-                            "Low \(WeatherFormatters.temperature(today.overnightLow, unitSystem: store.unitSystem))"
+                    VStack(spacing: 6) {
+                        temperatureFact(
+                            title: "High",
+                            value: today.daytimeHigh,
+                            symbol: "arrow.up"
                         )
-                    } icon: {
-                        Image(systemName: "arrow.down")
+                        temperatureFact(
+                            title: "Low",
+                            value: today.overnightLow,
+                            symbol: "arrow.down"
+                        )
                     }
                 }
                 .font(.subheadline.weight(.medium))
@@ -58,5 +72,19 @@ struct CurrentConditionsHero: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
+    }
+
+    private func temperatureFact(
+        title: String,
+        value: Double?,
+        symbol: String
+    ) -> some View {
+        Label {
+            Text(
+                "\(title) \(WeatherFormatters.temperature(value, unitSystem: store.unitSystem))"
+            )
+        } icon: {
+            Image(systemName: symbol)
+        }
     }
 }

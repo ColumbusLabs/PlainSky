@@ -2,16 +2,23 @@ import SwiftUI
 
 struct WeatherMetricsGrid: View {
     @Environment(WeatherStore.self) private var store
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     let current: CurrentConditions
     let solar: SolarWeather?
 
     @State private var selectedMetric: WeatherMetric?
 
-    private let columns = [
-        GridItem(.flexible(), spacing: 12),
-        GridItem(.flexible(), spacing: 12)
-    ]
+    private var columns: [GridItem] {
+        if dynamicTypeSize.isAccessibilitySize {
+            return [GridItem(.flexible())]
+        }
+
+        return [
+            GridItem(.flexible(), spacing: 12),
+            GridItem(.flexible(), spacing: 12)
+        ]
+    }
 
     var body: some View {
         LazyVGrid(columns: columns, spacing: 12) {
@@ -149,14 +156,13 @@ private struct MetricCard: View {
             Text(value)
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(WeatherTheme.primaryText)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
+                .fixedSize(horizontal: false, vertical: true)
 
             if let detail {
                 Text(detail)
                     .font(.caption)
                     .foregroundStyle(WeatherTheme.secondaryText)
-                    .lineLimit(1)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(16)
