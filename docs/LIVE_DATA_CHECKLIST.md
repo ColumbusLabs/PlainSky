@@ -1,38 +1,41 @@
 # Live data activation checklist
 
-The product UI intentionally stays on `PreviewWeatherRepository` until each provider is verified independently.
+The normal product launch intentionally stays on `PreviewWeatherRepository` until the remaining supplemental providers are verified. The NWS primary provider can already be exercised with `--live-nws`.
 
-## NWS — first activation target
+## NWS — implemented and fixture-tested
 
 No API key is required.
 
-Already implemented:
+Implemented:
 
-- shared HTTP client
-- required identifying User-Agent
-- `/points/{lat},{lon}`
-- forecast URL fetch using canonical U.S. units
-- hourly forecast URL fetch using canonical U.S. units
+- identifying User-Agent
+- `/points/{lat},{lon}` discovery
+- structured temperature and wind forecast feature flags
+- daily forecast endpoint
+- hourly forecast endpoint
+- raw grid-data endpoint
 - observation station collection
-- latest-station observation route
-- active-alert route
-- source/freshness metadata model
-- product availability model
-- stale-location response protection
-- source-policy and request-contract tests
+- latest QC station observation
+- active-alert endpoint
+- canonical unit normalization
+- ISO valid-time interval parsing
+- apparent temperature / dew point / humidity / gust grid enrichment
+- stale-observation rejection
+- ordered nearby-station fallback
+- day/night period pairing
+- Tonight-only handling without inventing a high
+- official alert wording and timestamps
+- partial-product failure states
+- request/mapper/provider fixture tests
+- opt-in `--live-nws` application mode
 
-Before activation:
+Remaining NWS validation before making it the default primary launch mode:
 
-1. Capture real NWS responses from several U.S. locations and weather regimes.
-2. Save sanitized fixtures for tests.
-3. Implement point/forecast/hourly/observation/alert mapping.
-4. Verify station selection against stale, distant, and partially missing station observations.
-5. Normalize NWS observation unit codes into the canonical internal unit basis.
-6. Preserve observation, issue, valid, fetch, and expiration timestamps distinctly.
-7. Verify Today/Tonight period pairing and the case where today's daytime period has already ended.
-8. Ensure missing values remain missing rather than becoming zero.
-9. Run the full simulator/unit/visual-smoke CI.
-10. Switch the primary provider from preview to NWS only after the fixtures pass.
+1. Exercise `--live-nws` against real locations and inspect source/freshness diagnostics.
+2. Test a location with a stale or incomplete nearest station.
+3. Test active and empty alert responses against the live service.
+4. Verify offline/cached behavior when NWS cannot be reached.
+5. Run the full on-device smoke pass.
 
 ## Apple WeatherKit — supplemental only
 
@@ -67,12 +70,11 @@ Before activation:
 
 ## Final live cutover
 
-After all three providers are verified:
+After WeatherKit and radar are verified:
 
-1. Wire the live repository in `AppEnvironment`.
-2. Replace the Settings/Diagnostics "Preview" mode label with live mode.
-3. Verify all source labels and attribution on-device.
-4. Test:
+1. Make NWS + approved supplements the normal `AppEnvironment` repository.
+2. Verify all source labels and required attribution on-device.
+3. Test:
    - offline launch
    - NWS outage
    - WeatherKit outage
@@ -88,4 +90,4 @@ After all three providers are verified:
    - Light/Dark/System
    - accessibility Dynamic Type
    - Reduce Motion
-5. Keep the PR draft until live-provider CI and on-device smoke testing are green.
+4. Keep the PR draft until live-provider and on-device smoke testing are green.

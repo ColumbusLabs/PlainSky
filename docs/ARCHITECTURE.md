@@ -34,7 +34,9 @@ The U.S./Metric setting is presentation-only. It is intentionally separate from 
 | UV | Apple WeatherKit |
 | Sunrise/sunset | Apple WeatherKit |
 
-Current-condition fallback is whole-group only: if a usable NWS observation group is unavailable, WeatherKit may provide a complete modeled current-condition fallback. Individual Apple fields are not silently mixed into an NWS station observation.
+Current-condition fallback is whole-group only: if a usable NWS observation group is unavailable, WeatherKit may eventually provide a complete modeled current-condition fallback. Individual Apple fields are never silently mixed into an NWS station observation.
+
+The NWS primary adapter is implemented. It discovers the forecast grid from the selected point, preserves day/night forecast periods, enriches hourly records only with provider-supplied grid values valid for that hour, rejects stale observations, and walks the NWS-provided nearby station list until it finds a fresh usable observation.
 
 ## Layers
 
@@ -91,6 +93,13 @@ Actual radar imagery will come from NOAA/NCEP. The radar UI never fabricates ech
 - Large temperature typography uses scaled metrics.
 - Radar respects Reduce Motion.
 - Color is not the only signal for provider/error state.
+
+## Runtime modes
+
+- Default launch: deterministic preview repository.
+- `--live-nws`: real NWS primary provider with unavailable supplemental WeatherKit/NOAA products surfaced honestly.
+
+This keeps normal visual CI deterministic while allowing live NWS validation without a separate app target.
 
 ## Validation
 
