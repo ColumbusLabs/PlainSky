@@ -21,68 +21,74 @@ struct WeatherMetricsGrid: View {
     }
 
     var body: some View {
-        LazyVGrid(columns: columns, spacing: 12) {
-            metricButton(
-                .wind,
-                icon: "wind",
-                title: "Wind",
-                value: WeatherFormatters.wind(
-                    speed: current.windSpeed,
-                    direction: current.windDirection,
-                    unitSystem: store.unitSystem
-                ),
-                detail: current.windGust.map {
-                    "Gusts \(WeatherFormatters.wind(speed: $0, direction: nil, unitSystem: store.unitSystem))"
-                }
-            )
+        VStack(spacing: 12) {
+            LazyVGrid(columns: columns, spacing: 12) {
+                metricButton(
+                    .wind,
+                    icon: "wind",
+                    title: "Wind",
+                    value: WeatherFormatters.wind(
+                        speed: current.windSpeed,
+                        direction: current.windDirection,
+                        unitSystem: store.unitSystem
+                    ),
+                    detail: current.windGust.map {
+                        "Gusts \(WeatherFormatters.wind(speed: $0, direction: nil, unitSystem: store.unitSystem))"
+                    }
+                )
 
-            metricButton(
-                .humidity,
-                icon: "humidity.fill",
-                title: "Humidity",
-                value: WeatherFormatters.percent(current.humidity),
-                detail: current.dewPoint.map {
-                    "Dew point \(WeatherFormatters.temperature($0, unitSystem: store.unitSystem))"
-                }
-            )
+                metricButton(
+                    .humidity,
+                    icon: "humidity.fill",
+                    title: "Humidity",
+                    value: WeatherFormatters.percent(current.humidity),
+                    detail: current.dewPoint.map {
+                        "Dew point \(WeatherFormatters.temperature($0, unitSystem: store.unitSystem))"
+                    }
+                )
 
-            metricButton(
-                .uv,
-                icon: "sun.max.fill",
-                title: "UV index",
-                value: solar?.uvIndex.map(String.init) ?? "—",
-                detail: solar == nil ? "Unavailable" : solar?.source.provider.rawValue
-            )
+                metricButton(
+                    .uv,
+                    icon: "sun.max.fill",
+                    title: "UV index",
+                    value: solar?.uvIndex.map(String.init) ?? "—",
+                    detail: solar == nil ? "Unavailable" : solar?.source.provider.rawValue
+                )
 
-            metricButton(
-                .sun,
-                icon: "sunset.fill",
-                title: "Sunset",
-                value: solar?.sunset.map(WeatherFormatters.hour) ?? "—",
-                detail: solar?.sunrise.map { "Sunrise \(WeatherFormatters.hour($0))" }
-            )
+                metricButton(
+                    .sun,
+                    icon: "sunset.fill",
+                    title: "Sunset",
+                    value: solar?.sunset.map(WeatherFormatters.hour) ?? "—",
+                    detail: solar?.sunrise.map { "Sunrise \(WeatherFormatters.hour($0))" }
+                )
 
-            metricButton(
-                .visibility,
-                icon: "eye.fill",
-                title: "Visibility",
-                value: WeatherFormatters.visibility(
-                    current.visibilityMiles,
-                    unitSystem: store.unitSystem
-                ),
-                detail: current.source.sourceName
-            )
+                metricButton(
+                    .visibility,
+                    icon: "eye.fill",
+                    title: "Visibility",
+                    value: WeatherFormatters.visibility(
+                        current.visibilityMiles,
+                        unitSystem: store.unitSystem
+                    ),
+                    detail: current.source.sourceName
+                )
 
-            metricButton(
-                .pressure,
-                icon: "gauge.with.dots.needle.33percent",
-                title: "Pressure",
-                value: WeatherFormatters.pressure(
-                    current.pressureMillibars,
-                    unitSystem: store.unitSystem
-                ),
-                detail: current.source.provider.rawValue
-            )
+                metricButton(
+                    .pressure,
+                    icon: "gauge.with.dots.needle.33percent",
+                    title: "Pressure",
+                    value: WeatherFormatters.pressure(
+                        current.pressureMillibars,
+                        unitSystem: store.unitSystem
+                    ),
+                    detail: current.source.provider.rawValue
+                )
+            }
+
+            if let solar {
+                WeatherProviderAttributionView(metadata: solar.source)
+            }
         }
         .sheet(item: $selectedMetric) { metric in
             WeatherMetricDetailSheet(

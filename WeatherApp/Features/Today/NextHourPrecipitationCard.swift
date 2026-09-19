@@ -56,6 +56,7 @@ struct NextHourPrecipitationCard: View {
 
                 if let source = samples.first?.source {
                     SourceFreshnessView(metadata: source)
+                    WeatherProviderAttributionView(metadata: source)
                 }
             }
         }

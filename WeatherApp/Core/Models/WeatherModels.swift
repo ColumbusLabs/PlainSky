@@ -77,6 +77,10 @@ struct WeatherSourceMetadata: Hashable, Codable, Sendable {
     var validTo: Date?
     var fetchedAt: Date
     var expiresAt: Date?
+    var attributionServiceName: String? = nil
+    var attributionLegalURL: URL? = nil
+    var attributionMarkLightURL: URL? = nil
+    var attributionMarkDarkURL: URL? = nil
 
     var isExpired: Bool {
         guard let expiresAt else { return false }

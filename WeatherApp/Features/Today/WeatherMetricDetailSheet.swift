@@ -95,6 +95,7 @@ struct WeatherMetricDetailSheet: View {
             VStack(alignment: .leading, spacing: 9) {
                 SectionHeader(title: "Source")
                 SourceFreshnessView(metadata: source)
+                WeatherProviderAttributionView(metadata: source)
 
                 Text("These are provider-supplied weather values. Unit changes are display conversions only.")
                     .font(.caption)
