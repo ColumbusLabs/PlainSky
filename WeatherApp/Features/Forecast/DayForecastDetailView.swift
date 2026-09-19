@@ -20,16 +20,18 @@ struct DayForecastDetailView: View {
                 LazyVStack(spacing: 16) {
                     hero
 
-                    ForecastPeriodCard(
-                        title: "Daytime",
-                        description: day.daytimeDescription,
-                        temperatureLabel: "High",
-                        temperature: day.daytimeHigh,
-                        precipitationChance: day.daytimePrecipitationChance,
-                        wind: day.windDescription,
-                        icon: day.daytimeCondition.symbolName,
-                        unitSystem: store.unitSystem
-                    )
+                    if day.daytimeHigh != nil {
+                        ForecastPeriodCard(
+                            title: "Daytime",
+                            description: day.daytimeDescription,
+                            temperatureLabel: "High",
+                            temperature: day.daytimeHigh,
+                            precipitationChance: day.daytimePrecipitationChance,
+                            wind: day.windDescription,
+                            icon: day.daytimeCondition.symbolName,
+                            unitSystem: store.unitSystem
+                        )
+                    }
 
                     if let nightDescription = day.nighttimeDescription {
                         ForecastPeriodCard(
@@ -71,7 +73,12 @@ struct DayForecastDetailView: View {
             }
             .scrollIndicators(.hidden)
         }
-        .navigationTitle(WeatherFormatters.fullDay(day.date))
+        .navigationTitle(
+            WeatherFormatters.fullForecastDay(
+                day.date,
+                hasDaytimePeriod: day.daytimeHigh != nil
+            )
+        )
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
         .sheet(item: $selectedHour) { hour in
@@ -91,21 +98,39 @@ struct DayForecastDetailView: View {
                 .symbolRenderingMode(.multicolor)
                 .font(.system(size: 48))
 
-            HStack(alignment: .firstTextBaseline, spacing: 20) {
-                VStack(spacing: 3) {
-                    Text(
-                        WeatherFormatters.temperature(
-                            day.daytimeHigh,
-                            unitSystem: store.unitSystem
+            if day.daytimeHigh != nil {
+                HStack(alignment: .firstTextBaseline, spacing: 20) {
+                    VStack(spacing: 3) {
+                        Text(
+                            WeatherFormatters.temperature(
+                                day.daytimeHigh,
+                                unitSystem: store.unitSystem
+                            )
                         )
-                    )
-                    .font(.system(size: 46, weight: .medium, design: .rounded))
+                        .font(.system(size: 46, weight: .medium, design: .rounded))
 
-                    Text("Day high")
-                        .font(.caption)
+                        Text("Day high")
+                            .font(.caption)
+                            .foregroundStyle(WeatherTheme.secondaryText)
+                    }
+
+                    VStack(spacing: 3) {
+                        Text(
+                            WeatherFormatters.temperature(
+                                day.overnightLow,
+                                unitSystem: store.unitSystem
+                            )
+                        )
+                        .font(.system(size: 34, weight: .regular, design: .rounded))
                         .foregroundStyle(WeatherTheme.secondaryText)
-                }
 
+                        Text("Overnight low")
+                            .font(.caption)
+                            .foregroundStyle(WeatherTheme.tertiaryText)
+                    }
+                }
+                .foregroundStyle(WeatherTheme.primaryText)
+            } else {
                 VStack(spacing: 3) {
                     Text(
                         WeatherFormatters.temperature(
@@ -113,15 +138,14 @@ struct DayForecastDetailView: View {
                             unitSystem: store.unitSystem
                         )
                     )
-                    .font(.system(size: 34, weight: .regular, design: .rounded))
-                    .foregroundStyle(WeatherTheme.secondaryText)
+                    .font(.system(size: 46, weight: .medium, design: .rounded))
+                    .foregroundStyle(WeatherTheme.primaryText)
 
-                    Text("Overnight low")
+                    Text("Tonight low")
                         .font(.caption)
-                        .foregroundStyle(WeatherTheme.tertiaryText)
+                        .foregroundStyle(WeatherTheme.secondaryText)
                 }
             }
-            .foregroundStyle(WeatherTheme.primaryText)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)

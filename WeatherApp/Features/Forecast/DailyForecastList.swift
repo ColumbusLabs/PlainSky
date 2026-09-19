@@ -32,12 +32,21 @@ private struct DailyForecastRow: View {
 
     let item: DailyForecastItem
 
+    private var hasDaytime: Bool {
+        item.daytimeHigh != nil
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack(spacing: 10) {
-                Text(WeatherFormatters.fullDay(item.date))
-                    .font(.headline)
-                    .foregroundStyle(WeatherTheme.primaryText)
+                Text(
+                    WeatherFormatters.fullForecastDay(
+                        item.date,
+                        hasDaytimePeriod: hasDaytime
+                    )
+                )
+                .font(.headline)
+                .foregroundStyle(WeatherTheme.primaryText)
 
                 Spacer(minLength: 10)
 
@@ -46,15 +55,17 @@ private struct DailyForecastRow: View {
                     .font(.title3)
                     .frame(width: 28)
 
-                Text(
-                    WeatherFormatters.temperature(
-                        item.daytimeHigh,
-                        unitSystem: store.unitSystem
+                if hasDaytime {
+                    Text(
+                        WeatherFormatters.temperature(
+                            item.daytimeHigh,
+                            unitSystem: store.unitSystem
+                        )
                     )
-                )
-                .font(.headline.monospacedDigit())
-                .foregroundStyle(WeatherTheme.primaryText)
-                .fixedSize()
+                    .font(.headline.monospacedDigit())
+                    .foregroundStyle(WeatherTheme.primaryText)
+                    .fixedSize()
+                }
 
                 Text(
                     WeatherFormatters.temperature(
@@ -62,8 +73,12 @@ private struct DailyForecastRow: View {
                         unitSystem: store.unitSystem
                     )
                 )
-                .font(.subheadline.monospacedDigit())
-                .foregroundStyle(WeatherTheme.secondaryText)
+                .font((hasDaytime ? Font.subheadline : Font.headline).monospacedDigit())
+                .foregroundStyle(
+                    hasDaytime
+                        ? WeatherTheme.secondaryText
+                        : WeatherTheme.primaryText
+                )
                 .fixedSize()
 
                 Image(systemName: "chevron.right")
@@ -77,19 +92,28 @@ private struct DailyForecastRow: View {
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
 
-            HStack(spacing: 16) {
+            if hasDaytime {
+                HStack(spacing: 16) {
+                    Label(
+                        "Day \(WeatherFormatters.percent(item.daytimePrecipitationChance))",
+                        systemImage: "drop.fill"
+                    )
+
+                    Label(
+                        "Night \(WeatherFormatters.percent(item.nighttimePrecipitationChance))",
+                        systemImage: "moon.fill"
+                    )
+                }
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(WeatherTheme.accent)
+            } else {
                 Label(
-                    "Day \(WeatherFormatters.percent(item.daytimePrecipitationChance))",
+                    "Tonight \(WeatherFormatters.percent(item.nighttimePrecipitationChance))",
                     systemImage: "drop.fill"
                 )
-
-                Label(
-                    "Night \(WeatherFormatters.percent(item.nighttimePrecipitationChance))",
-                    systemImage: "moon.fill"
-                )
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(WeatherTheme.accent)
             }
-            .font(.caption2.weight(.medium))
-            .foregroundStyle(WeatherTheme.accent)
         }
         .padding(.vertical, 14)
         .contentShape(Rectangle())

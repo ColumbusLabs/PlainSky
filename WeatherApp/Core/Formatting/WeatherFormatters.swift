@@ -100,4 +100,24 @@ enum WeatherFormatters {
         if calendar.isDateInTomorrow(date) { return "Tomorrow" }
         return date.formatted(.dateTime.weekday(.wide))
     }
+
+    static func shortForecastDay(
+        _ date: Date,
+        hasDaytimePeriod: Bool
+    ) -> String {
+        if !hasDaytimePeriod && Calendar.autoupdatingCurrent.isDateInToday(date) {
+            return "Tonight"
+        }
+        return shortDay(date)
+    }
+
+    static func fullForecastDay(
+        _ date: Date,
+        hasDaytimePeriod: Bool
+    ) -> String {
+        if !hasDaytimePeriod && Calendar.autoupdatingCurrent.isDateInToday(date) {
+            return "Tonight"
+        }
+        return fullDay(date)
+    }
 }

@@ -31,6 +31,25 @@ final class WeatherFormattersTests: XCTestCase {
         )
     }
 
+    func testTonightLabelDoesNotInventTodayDaytimePeriod() throws {
+        let today = Date()
+
+        XCTAssertEqual(
+            WeatherFormatters.fullForecastDay(
+                today,
+                hasDaytimePeriod: false
+            ),
+            "Tonight"
+        )
+        XCTAssertEqual(
+            WeatherFormatters.shortForecastDay(
+                today,
+                hasDaytimePeriod: false
+            ),
+            "Tonight"
+        )
+    }
+
     func testMetricWindAndVisibilityConversion() {
         XCTAssertEqual(
             WeatherFormatters.wind(

@@ -46,35 +46,45 @@ struct CurrentConditionsHero: View {
             }
 
             if let today {
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 14) {
-                        temperatureFact(
-                            title: "High",
-                            value: today.daytimeHigh,
-                            symbol: "arrow.up"
-                        )
-                        temperatureFact(
-                            title: "Low",
-                            value: today.overnightLow,
-                            symbol: "arrow.down"
-                        )
-                    }
+                if today.daytimeHigh == nil {
+                    temperatureFact(
+                        title: "Tonight low",
+                        value: today.overnightLow,
+                        symbol: "moon.fill"
+                    )
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(WeatherTheme.secondaryText)
+                } else {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 14) {
+                            temperatureFact(
+                                title: "High",
+                                value: today.daytimeHigh,
+                                symbol: "arrow.up"
+                            )
+                            temperatureFact(
+                                title: "Low",
+                                value: today.overnightLow,
+                                symbol: "arrow.down"
+                            )
+                        }
 
-                    VStack(spacing: 6) {
-                        temperatureFact(
-                            title: "High",
-                            value: today.daytimeHigh,
-                            symbol: "arrow.up"
-                        )
-                        temperatureFact(
-                            title: "Low",
-                            value: today.overnightLow,
-                            symbol: "arrow.down"
-                        )
+                        VStack(spacing: 6) {
+                            temperatureFact(
+                                title: "High",
+                                value: today.daytimeHigh,
+                                symbol: "arrow.up"
+                            )
+                            temperatureFact(
+                                title: "Low",
+                                value: today.overnightLow,
+                                symbol: "arrow.down"
+                            )
+                        }
                     }
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(WeatherTheme.secondaryText)
                 }
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(WeatherTheme.secondaryText)
             }
 
             SourceFreshnessView(metadata: current.source, compact: false)
