@@ -40,8 +40,8 @@ struct DayForecastDetailView: View {
                             temperatureLabel: "Low",
                             temperature: day.overnightLow,
                             precipitationChance: day.nighttimePrecipitationChance,
-                            wind: day.windDescription,
-                            icon: "moon.stars.fill",
+                            wind: day.nighttimeWindDescription ?? day.windDescription,
+                            icon: day.nighttimeCondition?.symbolName ?? "moon.stars.fill",
                             unitSystem: store.unitSystem
                         )
                     }

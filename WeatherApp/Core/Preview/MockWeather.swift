@@ -78,11 +78,13 @@ enum MockWeather {
                 daytimeHigh: Double(highs[index]),
                 overnightLow: Double(lows[index]),
                 daytimeCondition: conditions[index],
+                nighttimeCondition: index == 2 ? .rain : .mostlyClear,
                 daytimeDescription: index == 2 ? "Showers likely, mainly during the afternoon." : "Comfortable with a mix of sun and clouds.",
                 nighttimeDescription: index == 2 ? "Showers tapering late." : "Mostly clear overnight.",
                 daytimePrecipitationChance: rain[index],
                 nighttimePrecipitationChance: max(0.04, rain[index] - 0.08),
                 windDescription: "SW 7–12 mph",
+                nighttimeWindDescription: "W 4–8 mph",
                 source: forecastSource
             )
         }

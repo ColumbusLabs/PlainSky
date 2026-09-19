@@ -145,11 +145,13 @@ struct DailyForecastItem: Identifiable, Hashable, Sendable {
     var daytimeHigh: Double?
     var overnightLow: Double?
     var daytimeCondition: WeatherCondition
+    var nighttimeCondition: WeatherCondition?
     var daytimeDescription: String
     var nighttimeDescription: String?
     var daytimePrecipitationChance: Double?
     var nighttimePrecipitationChance: Double?
     var windDescription: String?
+    var nighttimeWindDescription: String?
     var source: WeatherSourceMetadata
 
     init(
@@ -158,11 +160,13 @@ struct DailyForecastItem: Identifiable, Hashable, Sendable {
         daytimeHigh: Double?,
         overnightLow: Double?,
         daytimeCondition: WeatherCondition,
+        nighttimeCondition: WeatherCondition? = nil,
         daytimeDescription: String,
         nighttimeDescription: String? = nil,
         daytimePrecipitationChance: Double? = nil,
         nighttimePrecipitationChance: Double? = nil,
         windDescription: String? = nil,
+        nighttimeWindDescription: String? = nil,
         source: WeatherSourceMetadata
     ) {
         self.id = id
@@ -170,11 +174,13 @@ struct DailyForecastItem: Identifiable, Hashable, Sendable {
         self.daytimeHigh = daytimeHigh
         self.overnightLow = overnightLow
         self.daytimeCondition = daytimeCondition
+        self.nighttimeCondition = nighttimeCondition
         self.daytimeDescription = daytimeDescription
         self.nighttimeDescription = nighttimeDescription
         self.daytimePrecipitationChance = daytimePrecipitationChance
         self.nighttimePrecipitationChance = nighttimePrecipitationChance
         self.windDescription = windDescription
+        self.nighttimeWindDescription = nighttimeWindDescription
         self.source = source
     }
 }

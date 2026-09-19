@@ -225,8 +225,13 @@ final class NWSMapperTests: XCTestCase {
         XCTAssertNil(days[0].daytimeHigh)
         XCTAssertEqual(days[0].overnightLow, 61)
         XCTAssertEqual(days[0].nighttimePrecipitationChance, 0.2)
+        XCTAssertEqual(days[0].nighttimeCondition, .partlyCloudy)
+        XCTAssertEqual(days[0].nighttimeWindDescription, "SW 5 mph")
         XCTAssertEqual(days[1].daytimeHigh, 79)
         XCTAssertEqual(days[1].overnightLow, 62)
+        XCTAssertEqual(days[1].windDescription, "W 7 mph")
+        XCTAssertEqual(days[1].nighttimeWindDescription, "W 4 mph")
+        XCTAssertEqual(days[1].nighttimeCondition, .mostlyClear)
     }
 
     func testAlertsPreserveOfficialTextAndSortBySeverity() throws {

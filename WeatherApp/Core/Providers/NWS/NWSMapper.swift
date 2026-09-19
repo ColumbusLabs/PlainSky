@@ -218,6 +218,9 @@ enum NWSMapper {
                 daytimeCondition: NWSConditionMapper.condition(
                     from: representative.shortForecast
                 ),
+                nighttimeCondition: bucket.nighttime.map {
+                    NWSConditionMapper.condition(from: $0.shortForecast)
+                },
                 daytimeDescription: periodDescription(bucket.daytime ?? bucket.nighttime),
                 nighttimeDescription: bucket.nighttime.map(periodDescription),
                 daytimePrecipitationChance: bucket.daytime.flatMap {
@@ -231,6 +234,7 @@ enum NWSMapper {
                     )
                 },
                 windDescription: windDescription(bucket.daytime ?? bucket.nighttime),
+                nighttimeWindDescription: windDescription(bucket.nighttime),
                 source: WeatherSourceMetadata(
                     provider: .nwsForecast,
                     productName: "Daily forecast",
