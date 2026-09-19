@@ -1,0 +1,35 @@
+name: WeatherApp
+
+options:
+  bundleIdPrefix: com.columbuslabs
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.10"
+    CURRENT_PROJECT_VERSION: 1
+    MARKETING_VERSION: 0.1.0
+
+targets:
+  WeatherApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: WeatherApp
+        excludes:
+          - Info.plist
+          - Resources
+    resources:
+      - path: WeatherApp/Resources
+    info:
+      path: WeatherApp/Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.columbuslabs.weatherapp
+        PRODUCT_NAME: WeatherApp
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        CODE_SIGN_STYLE: Automatic
+    scheme:
+      gatherCoverageData: false
