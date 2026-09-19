@@ -40,6 +40,17 @@ struct SettingsView: View {
                     }
                     .buttonStyle(.plain)
 
+                    NavigationLink {
+                        DiagnosticsView()
+                    } label: {
+                        SettingsNavigationCard(
+                            icon: "stethoscope",
+                            title: "Diagnostics",
+                            subtitle: "Inspect provider freshness, validity, and selected coordinates."
+                        )
+                    }
+                    .buttonStyle(.plain)
+
                     WeatherCard {
                         VStack(alignment: .leading, spacing: 12) {
                             SectionHeader(title: "Privacy")
