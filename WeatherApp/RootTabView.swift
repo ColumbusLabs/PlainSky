@@ -30,11 +30,7 @@ struct RootTabView: View {
             }
 
             NavigationStack {
-                PlaceholderScreen(
-                    icon: "location.fill",
-                    title: "Places",
-                    subtitle: "Current location, saved places, and settings."
-                )
+                PlacesView()
             }
             .tag(AppTab.places)
             .tabItem {

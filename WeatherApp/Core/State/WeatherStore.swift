@@ -32,11 +32,37 @@ final class WeatherStore {
         defer { isRefreshing = false }
 
         await Task.yield()
-        snapshot = MockWeather.snapshot
+
+        let fresh = MockWeather.snapshot
+        snapshot.current = fresh.current
+        snapshot.hourly = fresh.hourly
+        snapshot.daily = fresh.daily
+        snapshot.minutePrecipitation = fresh.minutePrecipitation
+        snapshot.alerts = fresh.alerts
+        snapshot.solar = fresh.solar
+        snapshot.fetchedAt = fresh.fetchedAt
     }
 
     func select(_ location: WeatherLocation) {
         snapshot.location = location
+    }
+
+    func addLocation(_ location: WeatherLocation) {
+        guard !savedLocations.contains(where: {
+            abs($0.latitude - location.latitude) < 0.001 &&
+            abs($0.longitude - location.longitude) < 0.001
+        }) else {
+            select(location)
+            return
+        }
+
+        savedLocations.append(location)
+        select(location)
+    }
+
+    func removeLocation(_ location: WeatherLocation) {
+        guard !location.isCurrentLocation else { return }
+        savedLocations.removeAll { $0.id == location.id }
     }
 }
 
