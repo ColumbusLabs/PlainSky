@@ -33,61 +33,66 @@ private struct DailyForecastRow: View {
     let item: DailyForecastItem
 
     var body: some View {
-        HStack(spacing: 14) {
-            VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack(spacing: 10) {
                 Text(WeatherFormatters.fullDay(item.date))
                     .font(.headline)
                     .foregroundStyle(WeatherTheme.primaryText)
 
-                Text(item.daytimeDescription)
-                    .font(.caption)
-                    .foregroundStyle(WeatherTheme.secondaryText)
-                    .lineLimit(1)
+                Spacer(minLength: 10)
+
+                Image(systemName: item.daytimeCondition.symbolName)
+                    .symbolRenderingMode(.multicolor)
+                    .font(.title3)
+                    .frame(width: 28)
+
+                Text(
+                    WeatherFormatters.temperature(
+                        item.daytimeHigh,
+                        unitSystem: store.unitSystem
+                    )
+                )
+                .font(.headline.monospacedDigit())
+                .foregroundStyle(WeatherTheme.primaryText)
+                .fixedSize()
+
+                Text(
+                    WeatherFormatters.temperature(
+                        item.overnightLow,
+                        unitSystem: store.unitSystem
+                    )
+                )
+                .font(.subheadline.monospacedDigit())
+                .foregroundStyle(WeatherTheme.secondaryText)
+                .fixedSize()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(WeatherTheme.tertiaryText)
             }
 
-            Spacer(minLength: 8)
+            Text(item.daytimeDescription)
+                .font(.caption)
+                .foregroundStyle(WeatherTheme.secondaryText)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
 
-            VStack(alignment: .trailing, spacing: 5) {
-                HStack(spacing: 8) {
-                    Image(systemName: item.daytimeCondition.symbolName)
-                        .symbolRenderingMode(.multicolor)
+            HStack(spacing: 16) {
+                Label(
+                    "Day \(WeatherFormatters.percent(item.daytimePrecipitationChance))",
+                    systemImage: "drop.fill"
+                )
 
-                    Text(
-                        WeatherFormatters.temperature(
-                            item.overnightLow,
-                            unitSystem: store.unitSystem
-                        )
-                    )
-                    .font(.subheadline.monospacedDigit())
-                    .foregroundStyle(WeatherTheme.secondaryText)
-
-                    Text(
-                        WeatherFormatters.temperature(
-                            item.daytimeHigh,
-                            unitSystem: store.unitSystem
-                        )
-                    )
-                    .font(.headline.monospacedDigit())
-                    .foregroundStyle(WeatherTheme.primaryText)
-                }
-
-                HStack(spacing: 10) {
-                    Label(
-                        "Day \(WeatherFormatters.percent(item.daytimePrecipitationChance))",
-                        systemImage: "drop.fill"
-                    )
-
-                    Text("Night \(WeatherFormatters.percent(item.nighttimePrecipitationChance))")
-                }
-                .font(.caption2)
-                .foregroundStyle(WeatherTheme.accent)
+                Label(
+                    "Night \(WeatherFormatters.percent(item.nighttimePrecipitationChance))",
+                    systemImage: "moon.fill"
+                )
             }
-
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(WeatherTheme.tertiaryText)
+            .font(.caption2.weight(.medium))
+            .foregroundStyle(WeatherTheme.accent)
         }
         .padding(.vertical, 14)
         .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 }

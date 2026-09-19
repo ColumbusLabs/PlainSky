@@ -25,12 +25,24 @@ targets:
       - path: WeatherApp/Resources
     info:
       path: WeatherApp/Info.plist
+      properties:
+        CFBundleDisplayName: Weather
+        CFBundleName: Weather
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSRequiresIPhoneOS: true
+        NSLocationWhenInUseUsageDescription: Your location is used to show weather for where you are. Your location is not stored on our servers.
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.columbuslabs.weatherapp
         PRODUCT_NAME: WeatherApp
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "1"
     scheme:
       gatherCoverageData: true
       testTargets:
