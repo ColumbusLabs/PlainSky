@@ -105,7 +105,10 @@ struct DiagnosticsView: View {
             VStack(alignment: .leading, spacing: 8) {
                 SectionHeader(title: "Repository state")
 
-                DiagnosticValueRow(label: "Mode", value: "Preview")
+                DiagnosticValueRow(
+                    label: "Mode",
+                    value: AppEnvironment.dataMode.title
+                )
                 DiagnosticValueRow(
                     label: "Refreshing",
                     value: store.isRefreshing ? "Yes" : "No"
@@ -115,7 +118,11 @@ struct DiagnosticsView: View {
                     value: store.lastRefreshError ?? "None"
                 )
 
-                Text("Live mode remains intentionally disabled until NWS fixtures, WeatherKit entitlements, and the NOAA radar service are verified.")
+                Text(
+                    AppEnvironment.dataMode == .preview
+                        ? "Preview data is active. Launch with --live-nws to exercise the keyless NWS primary provider without enabling WeatherKit or NOAA radar."
+                        : "The NWS primary provider is live. WeatherKit supplements and NOAA radar remain intentionally unavailable until their activation passes."
+                )
                     .font(.caption)
                     .foregroundStyle(WeatherTheme.tertiaryText)
                     .padding(.top, 3)

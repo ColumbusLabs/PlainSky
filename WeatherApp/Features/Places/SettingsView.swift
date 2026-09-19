@@ -98,7 +98,10 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             SectionHeader(title: "Build")
                             SettingsValueRow(label: "Version", value: "0.1.0")
-                            SettingsValueRow(label: "Data mode", value: "Preview")
+                            SettingsValueRow(
+                                label: "Data mode",
+                                value: AppEnvironment.dataMode.title
+                            )
                             SettingsValueRow(label: "Minimum iOS", value: "17.0")
                         }
                     }
