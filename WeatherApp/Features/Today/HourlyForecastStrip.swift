@@ -2,11 +2,16 @@ import SwiftUI
 
 struct HourlyForecastStrip: View {
     let items: [HourlyForecastItem]
+    var onSeeAll: (() -> Void)?
 
     var body: some View {
         WeatherCard {
             VStack(alignment: .leading, spacing: 14) {
-                SectionHeader(title: "Hourly")
+                SectionHeader(
+                    title: "Hourly",
+                    actionTitle: onSeeAll == nil ? nil : "See all",
+                    action: onSeeAll
+                )
 
                 ScrollView(.horizontal) {
                     LazyHStack(spacing: 0) {

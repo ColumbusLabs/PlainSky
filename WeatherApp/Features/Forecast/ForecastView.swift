@@ -2,7 +2,14 @@ import SwiftUI
 
 struct ForecastView: View {
     @Environment(WeatherStore.self) private var store
-    @State private var mode: ForecastMode = .daily
+    @Environment(AppRouter.self) private var router
+
+    private var mode: Binding<ForecastMode> {
+        Binding(
+            get: { router.forecastMode },
+            set: { router.forecastMode = $0 }
+        )
+    }
 
     var body: some View {
         ZStack {
@@ -14,7 +21,7 @@ struct ForecastView: View {
 
                     RefreshErrorBanner()
 
-                    Picker("Forecast view", selection: $mode) {
+                    Picker("Forecast view", selection: mode) {
                         ForEach(ForecastMode.allCases) { mode in
                             Text(mode.title).tag(mode)
                         }
@@ -22,7 +29,7 @@ struct ForecastView: View {
                     .pickerStyle(.segmented)
                     .accessibilityLabel("Forecast view")
 
-                    switch mode {
+                    switch router.forecastMode {
                     case .daily:
                         DailyForecastList(items: store.snapshot.daily)
                     case .hourly:
@@ -60,20 +67,6 @@ struct ForecastView: View {
             Image(systemName: store.snapshot.current.condition.symbolName)
                 .symbolRenderingMode(.multicolor)
                 .font(.title2)
-        }
-    }
-}
-
-enum ForecastMode: String, CaseIterable, Identifiable {
-    case daily
-    case hourly
-
-    var id: Self { self }
-
-    var title: String {
-        switch self {
-        case .daily: "Daily"
-        case .hourly: "Hourly"
         }
     }
 }

@@ -2,12 +2,17 @@ import SwiftUI
 
 struct DailyForecastPreview: View {
     let items: [DailyForecastItem]
+    var onSeeAll: (() -> Void)?
 
     var body: some View {
         WeatherCard {
             VStack(spacing: 0) {
-                SectionHeader(title: "Next days")
-                    .padding(.bottom, 6)
+                SectionHeader(
+                    title: "Next days",
+                    actionTitle: onSeeAll == nil ? nil : "See all",
+                    action: onSeeAll
+                )
+                .padding(.bottom, 6)
 
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                     HStack(spacing: 14) {

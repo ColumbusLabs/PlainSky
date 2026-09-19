@@ -1,10 +1,17 @@
 import SwiftUI
 
 struct RootTabView: View {
-    @State private var selection: AppTab = .today
+    @State private var router = AppRouter()
+
+    private var selection: Binding<AppTab> {
+        Binding(
+            get: { router.selectedTab },
+            set: { router.selectedTab = $0 }
+        )
+    }
 
     var body: some View {
-        TabView(selection: $selection) {
+        TabView(selection: selection) {
             NavigationStack {
                 TodayView()
             }
@@ -37,17 +44,11 @@ struct RootTabView: View {
                 Label("Places", systemImage: "location")
             }
         }
+        .environment(router)
         .tint(WeatherTheme.accent)
         .toolbarBackground(.ultraThinMaterial, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
     }
-}
-
-enum AppTab: Hashable {
-    case today
-    case forecast
-    case radar
-    case places
 }
 
 #Preview {

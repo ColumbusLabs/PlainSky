@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TodayView: View {
     @Environment(WeatherStore.self) private var store
+    @Environment(AppRouter.self) private var router
 
     private var backdropStyle: WeatherBackdropStyle {
         switch store.snapshot.current.condition {
@@ -54,11 +55,20 @@ struct TodayView: View {
                         NextHourPrecipitationCard(samples: store.snapshot.minutePrecipitation)
                     }
 
-                    HourlyForecastStrip(items: Array(store.snapshot.hourly.prefix(12)))
+                    HourlyForecastStrip(
+                        items: Array(store.snapshot.hourly.prefix(12)),
+                        onSeeAll: router.showHourlyForecast
+                    )
 
-                    DailyForecastPreview(items: Array(store.snapshot.daily.prefix(3)))
+                    DailyForecastPreview(
+                        items: Array(store.snapshot.daily.prefix(3)),
+                        onSeeAll: router.showDailyForecast
+                    )
 
-                    RadarPreviewCard(location: store.snapshot.location)
+                    RadarPreviewCard(
+                        location: store.snapshot.location,
+                        onOpen: router.showRadar
+                    )
 
                     WeatherMetricsGrid(
                         current: store.snapshot.current,

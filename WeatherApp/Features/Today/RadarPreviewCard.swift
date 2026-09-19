@@ -2,49 +2,60 @@ import SwiftUI
 
 struct RadarPreviewCard: View {
     let location: WeatherLocation
+    var onOpen: (() -> Void)?
 
     var body: some View {
-        WeatherCard {
-            VStack(alignment: .leading, spacing: 14) {
-                SectionHeader(title: "Radar")
+        Button {
+            onOpen?()
+        } label: {
+            WeatherCard {
+                VStack(alignment: .leading, spacing: 14) {
+                    SectionHeader(
+                        title: "Radar",
+                        actionTitle: onOpen == nil ? nil : "Open",
+                        action: onOpen
+                    )
 
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color(red: 0.05, green: 0.12, blue: 0.18),
-                                    Color(red: 0.08, green: 0.20, blue: 0.24)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color(red: 0.05, green: 0.12, blue: 0.18),
+                                        Color(red: 0.08, green: 0.20, blue: 0.24)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
                             )
-                        )
 
-                    RadarGlyph()
-                        .padding(24)
+                        RadarGlyph()
+                            .padding(24)
 
-                    VStack {
-                        Spacer()
-
-                        HStack {
-                            Label(location.name, systemImage: "location.fill")
-                                .font(.caption.weight(.semibold))
-
+                        VStack {
                             Spacer()
 
-                            Label("NOAA", systemImage: "antenna.radiowaves.left.and.right")
-                                .font(.caption.weight(.semibold))
+                            HStack {
+                                Label(location.name, systemImage: "location.fill")
+                                    .font(.caption.weight(.semibold))
+
+                                Spacer()
+
+                                Label("NOAA", systemImage: "antenna.radiowaves.left.and.right")
+                                    .font(.caption.weight(.semibold))
+                            }
+                            .foregroundStyle(.white.opacity(0.82))
+                            .padding(14)
                         }
-                        .foregroundStyle(.white.opacity(0.82))
-                        .padding(14)
                     }
+                    .frame(height: 150)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 }
-                .frame(height: 150)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .accessibilityLabel("Radar preview for \(location.displayName)")
             }
         }
+        .buttonStyle(.plain)
+        .disabled(onOpen == nil)
+        .accessibilityLabel("Open radar for \(location.displayName)")
     }
 }
 
