@@ -4,6 +4,9 @@ struct PlacesView: View {
     @Environment(WeatherStore.self) private var store
     @State private var showingSearch = false
     @State private var locationService = LocationService()
+    @State private var renameTarget: WeatherLocation?
+    @State private var renameText = ""
+    @State private var showingRename = false
 
     var body: some View {
         ZStack {
@@ -96,6 +99,24 @@ struct PlacesView: View {
                 LocationSearchView()
             }
             .environment(store)
+        }
+        .alert("Rename Place", isPresented: $showingRename) {
+            TextField("Place name", text: $renameText)
+
+            Button("Cancel", role: .cancel) {
+                renameTarget = nil
+                renameText = ""
+            }
+
+            Button("Save") {
+                if let renameTarget {
+                    store.renameLocation(renameTarget, to: renameText)
+                }
+                self.renameTarget = nil
+                renameText = ""
+            }
+        } message: {
+            Text("This changes only the local label in your saved places.")
         }
         .onChange(of: locationService.currentLocation) { _, location in
             guard let location else { return }
@@ -195,6 +216,30 @@ struct PlacesView: View {
                     .buttonStyle(.plain)
                     .contextMenu {
                         if !location.isCurrentLocation {
+                            Button {
+                                renameTarget = location
+                                renameText = location.name
+                                showingRename = true
+                            } label: {
+                                Label("Rename", systemImage: "pencil")
+                            }
+
+                            Button {
+                                store.moveLocation(location, offset: -1)
+                            } label: {
+                                Label("Move Up", systemImage: "arrow.up")
+                            }
+                            .disabled(!store.canMoveLocation(location, offset: -1))
+
+                            Button {
+                                store.moveLocation(location, offset: 1)
+                            } label: {
+                                Label("Move Down", systemImage: "arrow.down")
+                            }
+                            .disabled(!store.canMoveLocation(location, offset: 1))
+
+                            Divider()
+
                             Button(role: .destructive) {
                                 store.removeLocation(location)
                             } label: {

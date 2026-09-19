@@ -54,6 +54,90 @@ final class WeatherStoreConcurrencyTests: XCTestCase {
         XCTAssertEqual(store.snapshot.current.temperature, 78)
         XCTAssertFalse(store.isRefreshing)
     }
+
+    func testSavedPlaceRenameReorderAndSelectedRemoval() async throws {
+        let current = WeatherLocation(
+            name: "Current Location",
+            region: "Indiana",
+            latitude: 39.0,
+            longitude: -86.0,
+            isCurrentLocation: true
+        )
+        let first = WeatherLocation(
+            name: "First",
+            region: "Indiana",
+            latitude: 40.0,
+            longitude: -85.0
+        )
+        let second = WeatherLocation(
+            name: "Second",
+            region: "Ohio",
+            latitude: 39.9,
+            longitude: -83.0
+        )
+
+        let suite = "WeatherStorePlacesTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        var snapshot = MockWeather.snapshot
+        snapshot.location = first
+
+        let store = WeatherStore(
+            snapshot: snapshot,
+            savedLocations: [current, first, second],
+            preferences: WeatherPreferences(defaults: defaults)
+        )
+
+        store.renameLocation(first, to: "Home")
+        XCTAssertEqual(store.savedLocations[1].name, "Home")
+        XCTAssertEqual(store.snapshot.location.name, "Home")
+
+        let renamedFirst = store.savedLocations[1]
+        XCTAssertFalse(store.canMoveLocation(renamedFirst, offset: -1))
+        XCTAssertTrue(store.canMoveLocation(second, offset: -1))
+
+        store.moveLocation(second, offset: -1)
+        XCTAssertEqual(store.savedLocations.map(\.name), ["Current Location", "Second", "Home"])
+
+        store.removeLocation(renamedFirst)
+        XCTAssertEqual(store.savedLocations.map(\.name), ["Current Location", "Second"])
+        XCTAssertEqual(store.snapshot.location.id, current.id)
+
+        await Task.yield()
+    }
+
+    func testCurrentLocationCannotBeRenamedMovedOrRemoved() throws {
+        let current = WeatherLocation(
+            name: "Current Location",
+            region: "Indiana",
+            latitude: 39.0,
+            longitude: -86.0,
+            isCurrentLocation: true
+        )
+        let saved = WeatherLocation(
+            name: "Saved",
+            region: "Indiana",
+            latitude: 40.0,
+            longitude: -85.0
+        )
+
+        let suite = "WeatherStorePinnedCurrentTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let store = WeatherStore(
+            savedLocations: [current, saved],
+            preferences: WeatherPreferences(defaults: defaults)
+        )
+
+        store.renameLocation(current, to: "Renamed")
+        store.moveLocation(current, offset: 1)
+        store.removeLocation(current)
+
+        XCTAssertEqual(store.savedLocations.first?.name, "Current Location")
+        XCTAssertEqual(store.savedLocations.count, 2)
+    }
 }
 
 @MainActor

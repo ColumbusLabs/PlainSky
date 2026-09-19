@@ -109,6 +109,10 @@ final class WeatherStore {
 
         if let index = savedLocations.firstIndex(where: { $0.isCurrentLocation }) {
             savedLocations[index] = location
+            if index != 0 {
+                let updated = savedLocations.remove(at: index)
+                savedLocations.insert(updated, at: 0)
+            }
         } else {
             savedLocations.insert(location, at: 0)
         }
@@ -145,10 +149,57 @@ final class WeatherStore {
         }
     }
 
+    func renameLocation(_ location: WeatherLocation, to proposedName: String) {
+        guard !location.isCurrentLocation,
+              let index = savedLocations.firstIndex(where: { $0.id == location.id }) else {
+            return
+        }
+
+        let trimmed = proposedName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        savedLocations[index].name = trimmed
+        let renamed = savedLocations[index]
+        persistLocations()
+
+        if snapshot.location.id == renamed.id {
+            snapshot.location = renamed
+            preferences.saveLastLocation(renamed)
+        }
+    }
+
+    func canMoveLocation(_ location: WeatherLocation, offset: Int) -> Bool {
+        guard !location.isCurrentLocation,
+              let index = savedLocations.firstIndex(where: { $0.id == location.id }) else {
+            return false
+        }
+
+        let target = index + offset
+        guard savedLocations.indices.contains(target) else { return false }
+
+        return !savedLocations[target].isCurrentLocation
+    }
+
+    func moveLocation(_ location: WeatherLocation, offset: Int) {
+        guard canMoveLocation(location, offset: offset),
+              let index = savedLocations.firstIndex(where: { $0.id == location.id }) else {
+            return
+        }
+
+        savedLocations.swapAt(index, index + offset)
+        persistLocations()
+    }
+
     func removeLocation(_ location: WeatherLocation) {
         guard !location.isCurrentLocation else { return }
+
+        let wasSelected = snapshot.location.id == location.id
         savedLocations.removeAll { $0.id == location.id }
         persistLocations()
+
+        if wasSelected, let fallback = savedLocations.first {
+            selectAndRefresh(fallback)
+        }
     }
 
     func clearRefreshError() {
