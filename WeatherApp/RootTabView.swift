@@ -22,11 +22,7 @@ struct RootTabView: View {
             }
 
             NavigationStack {
-                PlaceholderScreen(
-                    icon: "map.fill",
-                    title: "Radar",
-                    subtitle: "See what is actually moving toward you."
-                )
+                RadarView()
             }
             .tag(AppTab.radar)
             .tabItem {
