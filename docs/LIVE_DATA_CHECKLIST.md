@@ -1,93 +1,68 @@
 # Live data activation checklist
 
-The normal product launch intentionally stays on `PreviewWeatherRepository` until the remaining supplemental providers are verified. The NWS primary provider can already be exercised with `--live-nws`.
-
-## NWS — implemented and fixture-tested
+## NWS / NOAA — implemented
 
 No API key is required.
 
-Implemented:
+Implemented and tested:
 
+- NWS `/points/{lat},{lon}` discovery
 - identifying User-Agent
-- `/points/{lat},{lon}` discovery
-- structured temperature and wind forecast feature flags
-- daily forecast endpoint
-- hourly forecast endpoint
-- raw grid-data endpoint
-- observation station collection
-- latest QC station observation
-- active-alert endpoint
-- canonical unit normalization
-- ISO valid-time interval parsing
-- apparent temperature / dew point / humidity / gust grid enrichment
+- daily and hourly forecasts
+- raw grid-data enrichment
+- ordered nearby observation-station fallback
 - stale-observation rejection
-- ordered nearby-station fallback
-- day/night period pairing
-- Tonight-only handling without inventing a high
-- official alert wording and timestamps
-- partial-product failure states
-- request/mapper/provider fixture tests
-- opt-in `--live-nws` application mode
+- current temperature / feels-like / humidity / dew point / wind / visibility / pressure
+- official NWS alerts with failure distinct from an all-clear
+- Tonight-only handling without inventing a daytime high
+- day/night condition separation
+- canonical unit normalization
+- live NWS simulator smoke testing
+- NOAA/NCEP WMS capabilities discovery
+- provider-advertised radar frame timestamps
+- CONUS / Alaska / Hawaii / Caribbean / Guam radar configuration
+- exact WMS TIME frame requests
+- native MapKit radar overlay and playback
+- real NOAA radar simulator visual verification
 
-Remaining NWS validation before making it the default primary launch mode:
+Normal launches now use live NWS + NOAA. `--preview-data` is reserved for deterministic UI validation.
 
-1. Exercise `--live-nws` against real locations and inspect source/freshness diagnostics.
-2. Test a location with a stale or incomplete nearest station.
-3. Test active and empty alert responses against the live service.
-4. Verify offline/cached behavior when NWS cannot be reached.
-5. Run the full on-device smoke pass.
+## WeatherKit — code complete, Apple capability pending
 
-## Apple WeatherKit — supplemental only
+Implemented in the repo:
 
-Before activation:
+- native WeatherKit adapter
+- current-condition fallback mapping
+- minute precipitation mapping
+- UV
+- sunrise/sunset
+- Apple Weather source metadata
+- required Apple Weather attribution UI
+- WeatherKit entitlement file and XcodeGen wiring
+- condition-mapping tests
 
-1. Enable WeatherKit for the Apple Developer App ID and Xcode target.
-2. Implement the native WeatherKit adapter.
-3. Map only the approved supplemental products:
-   - next-hour precipitation
-   - UV
-   - solar events
-   - complete current-condition fallback when required
-4. Mark minute precipitation as unsupported when WeatherKit does not offer it at the selected location.
-5. Preserve Apple source/validity metadata.
-6. Add Apple's required attribution wherever Apple Weather data is displayed.
-7. Keep WeatherKit caching temporary and within Apple's terms.
-8. Verify an Apple failure leaves the NWS forecast usable.
+External step still required:
 
-## NOAA/NCEP radar
+1. Enable WeatherKit on the Apple Developer App ID `com.columbuslabs.weatherapp`.
+2. Refresh provisioning / confirm the capability in Xcode.
+3. Run the app with `--live-weatherkit`.
+4. Verify minute precipitation, UV, solar events, attribution, and current-condition fallback on a physical device.
+5. Then promote WeatherKit-enabled mode to the normal default.
 
-Before activation:
+See `docs/WEATHERKIT_SETUP.md`.
 
-1. Select and document the exact NOAA/NCEP imagery service.
-2. Verify its capabilities document, layer identifiers, coordinate system, and advertised timestamps.
-3. Implement frame discovery from provider-advertised times.
-4. Feed timestamped frames into the existing `RadarPlaybackState`.
-5. Implement map tile overlay loading, cancellation, and a bounded cache.
-6. Keep the previous complete frame visible while a replacement frame loads.
-7. Distinguish a valid transparent/no-echo frame from a failed request.
-8. Never synthesize missing frames or future radar.
-9. Verify map/radar performance on a physical iPhone.
+## Final physical-device checks
 
-## Final live cutover
+After Apple-side WeatherKit activation:
 
-After WeatherKit and radar are verified:
-
-1. Make NWS + approved supplements the normal `AppEnvironment` repository.
-2. Verify all source labels and required attribution on-device.
-3. Test:
-   - offline launch
-   - NWS outage
-   - WeatherKit outage
-   - radar outage
-   - approximate location
-   - denied location permission
-   - location switch during an in-flight request
-   - no active alerts
-   - active severe alerts
-   - minute precipitation unsupported
-   - Today after the daytime NWS period has ended
-   - U.S. and Metric display units
-   - Light/Dark/System
-   - accessibility Dynamic Type
-   - Reduce Motion
-4. Keep the PR draft until live-provider and on-device smoke testing are green.
+- denied and approximate location
+- offline launch / provider outage behavior
+- active and empty NWS alert responses
+- stale or incomplete nearest observation station
+- rapid saved-location switching during requests
+- WeatherKit unavailable location
+- U.S. and Metric display units
+- Light / Dark / System
+- Dynamic Type
+- Reduce Motion radar behavior
+- actual iPhone radar pan/zoom/playback performance

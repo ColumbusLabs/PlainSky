@@ -42,6 +42,7 @@ targets:
         PRODUCT_NAME: WeatherApp
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: WeatherApp/WeatherApp.entitlements
         TARGETED_DEVICE_FAMILY: "1"
     scheme:
       gatherCoverageData: true
