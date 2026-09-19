@@ -1,7 +1,12 @@
 import SwiftUI
 
 struct RadarPlaybackControls: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Bindable var playback: RadarPlaybackState
+
+    private var playbackDisabled: Bool {
+        playback.frames.count < 2 || reduceMotion
+    }
 
     var body: some View {
         VStack(spacing: 12) {
@@ -42,13 +47,20 @@ struct RadarPlaybackControls: View {
                         .font(.system(size: 15, weight: .bold))
                         .frame(width: 42, height: 42)
                         .background(
-                            playback.frames.count > 1 ? WeatherTheme.accent : Color.secondary.opacity(0.2),
+                            playbackDisabled
+                                ? Color.secondary.opacity(0.2)
+                                : WeatherTheme.accent,
                             in: Circle()
                         )
                         .foregroundStyle(.white)
                 }
-                .disabled(playback.frames.count < 2)
+                .disabled(playbackDisabled)
                 .accessibilityLabel(playback.isPlaying ? "Pause radar" : "Play radar")
+                .accessibilityHint(
+                    reduceMotion && playback.frames.count > 1
+                        ? "Playback is disabled while Reduce Motion is enabled. Use the timeline slider instead."
+                        : ""
+                )
 
                 if playback.frames.count > 1 {
                     Slider(
@@ -60,6 +72,10 @@ struct RadarPlaybackControls: View {
                         step: 1
                     )
                     .tint(WeatherTheme.accent)
+                    .accessibilityLabel("Radar frame")
+                    .accessibilityValue(
+                        "\(playback.selectedIndex + 1) of \(playback.frames.count)"
+                    )
                 } else {
                     Capsule()
                         .fill(Color.secondary.opacity(0.18))
@@ -76,6 +92,13 @@ struct RadarPlaybackControls: View {
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(.secondary)
                     .frame(width: 34, alignment: .trailing)
+            }
+
+            if reduceMotion && playback.frames.count > 1 {
+                Text("Reduce Motion is on. Radar animation stays paused; the timeline remains available.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(14)

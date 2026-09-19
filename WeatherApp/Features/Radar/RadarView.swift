@@ -22,7 +22,11 @@ struct RadarView: View {
                 Spacer()
 
                 if playback.frames.isEmpty {
-                    RadarUnavailableCard()
+                    RadarUnavailableCard(
+                        message: store.snapshot
+                            .availability(for: .radar)
+                            .message ?? "No radar frames are currently available."
+                    )
                 }
 
                 RadarPlaybackControls(playback: playback)
@@ -91,6 +95,8 @@ private struct RadarHeader: View {
 }
 
 private struct RadarUnavailableCard: View {
+    let message: String
+
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: "antenna.radiowaves.left.and.right")
@@ -98,10 +104,10 @@ private struct RadarUnavailableCard: View {
                 .foregroundStyle(WeatherTheme.accent)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text("Radar feed ready for connection")
+                Text("Radar unavailable")
                     .font(.subheadline.weight(.semibold))
 
-                Text("The map and playback surface are built. NOAA frame discovery is intentionally not enabled yet.")
+                Text(message)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
