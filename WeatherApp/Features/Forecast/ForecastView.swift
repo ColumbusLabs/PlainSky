@@ -42,6 +42,11 @@ struct ForecastView: View {
                 await store.refresh()
             }
         }
+        .overlay {
+            if store.isShowingPlaceholderData {
+                LiveWeatherLoadingView(title: "Loading live forecast")
+            }
+        }
         .toolbar(.hidden, for: .navigationBar)
     }
 

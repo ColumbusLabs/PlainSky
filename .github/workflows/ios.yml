@@ -96,7 +96,7 @@ jobs:
         run: |
           UDID="${{ steps.simulator.outputs.udid }}"
           xcrun simctl ui "$UDID" appearance dark
-          xcrun simctl launch --terminate-running-process "$UDID" com.columbuslabs.weatherapp --skip-onboarding
+          xcrun simctl launch --terminate-running-process "$UDID" com.columbuslabs.weatherapp --skip-onboarding --preview-data
           sleep 2
           xcrun simctl io "$UDID" screenshot visual-smoke/today-dark.png
 
@@ -104,7 +104,7 @@ jobs:
         timeout-minutes: 2
         run: |
           UDID="${{ steps.simulator.outputs.udid }}"
-          xcrun simctl launch --terminate-running-process "$UDID" com.columbuslabs.weatherapp --skip-onboarding --weather-tab=forecast
+          xcrun simctl launch --terminate-running-process "$UDID" com.columbuslabs.weatherapp --skip-onboarding --preview-data --weather-tab=forecast
           sleep 2
           xcrun simctl io "$UDID" screenshot visual-smoke/forecast-dark.png
 
@@ -120,7 +120,7 @@ jobs:
         timeout-minutes: 2
         run: |
           UDID="${{ steps.simulator.outputs.udid }}"
-          xcrun simctl launch --terminate-running-process "$UDID" com.columbuslabs.weatherapp --skip-onboarding --weather-tab=places
+          xcrun simctl launch --terminate-running-process "$UDID" com.columbuslabs.weatherapp --skip-onboarding --preview-data --weather-tab=places
           sleep 2
           xcrun simctl io "$UDID" screenshot visual-smoke/places-dark.png
 

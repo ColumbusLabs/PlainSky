@@ -8,6 +8,7 @@ final class WeatherStore {
     var savedLocations: [WeatherLocation]
     var isRefreshing = false
     var lastRefreshError: String?
+    var isShowingPlaceholderData: Bool
 
     var appearance: AppAppearance {
         didSet {
@@ -23,18 +24,23 @@ final class WeatherStore {
 
     private let repository: any WeatherRepository
     private let preferences: WeatherPreferences
+    private let masksStaleLocationData: Bool
     private var loadGeneration = 0
 
     init(
         repository: (any WeatherRepository)? = nil,
         snapshot: WeatherSnapshot = MockWeather.snapshot,
         savedLocations: [WeatherLocation]? = nil,
-        preferences: WeatherPreferences? = nil
+        preferences: WeatherPreferences? = nil,
+        isShowingPlaceholderData: Bool = false,
+        masksStaleLocationData: Bool = false
     ) {
         let resolvedPreferences = preferences ?? .live
 
         self.repository = repository ?? PreviewWeatherRepository()
         self.preferences = resolvedPreferences
+        self.isShowingPlaceholderData = isShowingPlaceholderData
+        self.masksStaleLocationData = masksStaleLocationData
         self.appearance = resolvedPreferences.loadAppearance() ?? .system
         self.unitSystem = resolvedPreferences.loadUnitSystem() ?? .us
         self.savedLocations = savedLocations
@@ -82,6 +88,7 @@ final class WeatherStore {
             }
 
             snapshot = loadedSnapshot
+            isShowingPlaceholderData = false
         } catch {
             guard generation == loadGeneration else { return }
             lastRefreshError = error.localizedDescription
@@ -94,6 +101,12 @@ final class WeatherStore {
 
     func select(_ location: WeatherLocation) {
         invalidateOutstandingLoad()
+
+        if masksStaleLocationData && snapshot.location.id != location.id {
+            isShowingPlaceholderData = true
+            lastRefreshError = nil
+        }
+
         snapshot.location = location
         preferences.saveLastLocation(location)
     }
