@@ -3,12 +3,19 @@ import SwiftUI
 @main
 struct WeatherApp: App {
     @State private var store = AppEnvironment.makeWeatherStore()
+    @AppStorage("hasCompletedWeatherOnboarding") private var hasCompletedOnboarding = false
 
     var body: some Scene {
         WindowGroup {
-            RootTabView()
-                .environment(store)
-                .preferredColorScheme(store.preferredColorScheme)
+            Group {
+                if hasCompletedOnboarding {
+                    RootTabView()
+                } else {
+                    OnboardingView(hasCompletedOnboarding: $hasCompletedOnboarding)
+                }
+            }
+            .environment(store)
+            .preferredColorScheme(store.preferredColorScheme)
         }
     }
 }

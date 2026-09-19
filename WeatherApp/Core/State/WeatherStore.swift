@@ -48,6 +48,19 @@ final class WeatherStore {
         snapshot.location = location
     }
 
+    func setCurrentLocation(_ location: WeatherLocation) {
+        var location = location
+        location.isCurrentLocation = true
+
+        if let index = savedLocations.firstIndex(where: { $0.isCurrentLocation }) {
+            savedLocations[index] = location
+        } else {
+            savedLocations.insert(location, at: 0)
+        }
+
+        select(location)
+    }
+
     func addLocation(_ location: WeatherLocation) {
         guard !savedLocations.contains(where: {
             abs($0.latitude - location.latitude) < 0.001 &&

@@ -7,6 +7,12 @@ struct LocationSearchView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var searchModel = LocationSearchModel()
 
+    var onSelection: ((WeatherLocation) -> Void)?
+
+    init(onSelection: ((WeatherLocation) -> Void)? = nil) {
+        self.onSelection = onSelection
+    }
+
     var body: some View {
         List {
             if searchModel.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -25,6 +31,7 @@ struct LocationSearchView: View {
                         Task {
                             if let location = await searchModel.resolve(result) {
                                 store.addLocation(location)
+                                onSelection?(location)
                                 dismiss()
                             }
                         }
