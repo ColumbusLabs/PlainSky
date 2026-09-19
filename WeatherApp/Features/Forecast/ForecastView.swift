@@ -12,6 +12,8 @@ struct ForecastView: View {
                 LazyVStack(spacing: 16) {
                     header
 
+                    RefreshErrorBanner()
+
                     Picker("Forecast view", selection: $mode) {
                         ForEach(ForecastMode.allCases) { mode in
                             Text(mode.title).tag(mode)

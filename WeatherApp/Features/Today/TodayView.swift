@@ -22,6 +22,8 @@ struct TodayView: View {
                 LazyVStack(spacing: 16) {
                     TodayLocationHeader()
 
+                    RefreshErrorBanner()
+
                     CurrentConditionsHero(
                         current: store.snapshot.current,
                         today: store.snapshot.daily.first

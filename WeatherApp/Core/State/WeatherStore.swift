@@ -7,19 +7,35 @@ final class WeatherStore {
     var snapshot: WeatherSnapshot
     var savedLocations: [WeatherLocation]
     var isRefreshing = false
-    var appearance: AppAppearance = .system
     var lastRefreshError: String?
 
+    var appearance: AppAppearance {
+        didSet {
+            preferences.saveAppearance(appearance)
+        }
+    }
+
     private let repository: any WeatherRepository
+    private let preferences: WeatherPreferences
 
     init(
         repository: any WeatherRepository = PreviewWeatherRepository(),
         snapshot: WeatherSnapshot = MockWeather.snapshot,
-        savedLocations: [WeatherLocation] = MockWeather.savedLocations
+        savedLocations: [WeatherLocation]? = nil,
+        preferences: WeatherPreferences = .live
     ) {
         self.repository = repository
-        self.snapshot = snapshot
+        self.preferences = preferences
+        self.appearance = preferences.loadAppearance() ?? .system
         self.savedLocations = savedLocations
+            ?? preferences.loadSavedLocations()
+            ?? MockWeather.savedLocations
+
+        var initialSnapshot = snapshot
+        if let lastLocation = preferences.loadLastLocation() {
+            initialSnapshot.location = lastLocation
+        }
+        self.snapshot = initialSnapshot
     }
 
     var preferredColorScheme: ColorScheme? {
@@ -46,6 +62,7 @@ final class WeatherStore {
 
     func select(_ location: WeatherLocation) {
         snapshot.location = location
+        preferences.saveLastLocation(location)
     }
 
     func setCurrentLocation(_ location: WeatherLocation) {
@@ -58,25 +75,36 @@ final class WeatherStore {
             savedLocations.insert(location, at: 0)
         }
 
+        persistLocations()
         select(location)
     }
 
     func addLocation(_ location: WeatherLocation) {
-        guard !savedLocations.contains(where: {
+        if let existing = savedLocations.first(where: {
             abs($0.latitude - location.latitude) < 0.001 &&
             abs($0.longitude - location.longitude) < 0.001
-        }) else {
-            select(location)
+        }) {
+            select(existing)
             return
         }
 
         savedLocations.append(location)
+        persistLocations()
         select(location)
     }
 
     func removeLocation(_ location: WeatherLocation) {
         guard !location.isCurrentLocation else { return }
         savedLocations.removeAll { $0.id == location.id }
+        persistLocations()
+    }
+
+    func clearRefreshError() {
+        lastRefreshError = nil
+    }
+
+    private func persistLocations() {
+        preferences.saveSavedLocations(savedLocations)
     }
 }
 
