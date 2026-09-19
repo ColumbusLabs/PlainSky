@@ -5,12 +5,14 @@ struct PrimaryWeatherPayload: Sendable {
     var hourly: [HourlyForecastItem]
     var daily: [DailyForecastItem]
     var alerts: [WeatherAlert]
+    var availability: [WeatherProduct: WeatherProductAvailability] = [:]
 }
 
 struct SupplementalWeatherPayload: Sendable {
     var currentFallback: CurrentConditions?
     var minutePrecipitation: [MinutePrecipitationSample]
     var solar: SolarWeather?
+    var availability: [WeatherProduct: WeatherProductAvailability] = [:]
 }
 
 protocol PrimaryWeatherProviding {
@@ -25,7 +27,7 @@ protocol RadarProviding {
     func frames(for location: WeatherLocation) async throws -> [RadarFrame]
 }
 
-enum WeatherProduct: String, CaseIterable, Identifiable {
+enum WeatherProduct: String, CaseIterable, Identifiable, Hashable, Sendable {
     case currentConditions
     case hourlyForecast
     case dailyForecast
@@ -36,6 +38,19 @@ enum WeatherProduct: String, CaseIterable, Identifiable {
     case solarEvents
 
     var id: Self { self }
+
+    var displayName: String {
+        switch self {
+        case .currentConditions: "Current conditions"
+        case .hourlyForecast: "Hourly forecast"
+        case .dailyForecast: "Daily forecast"
+        case .alerts: "Alerts"
+        case .radar: "Radar"
+        case .minutePrecipitation: "Next-hour precipitation"
+        case .uvIndex: "UV index"
+        case .solarEvents: "Sunrise / sunset"
+        }
+    }
 }
 
 enum WeatherSourcePolicy {

@@ -234,5 +234,10 @@ struct WeatherSnapshot: Sendable {
     var minutePrecipitation: [MinutePrecipitationSample]
     var alerts: [WeatherAlert]
     var solar: SolarWeather?
+    var availability: [WeatherProduct: WeatherProductAvailability]
     var fetchedAt: Date
+
+    func availability(for product: WeatherProduct) -> WeatherProductAvailability {
+        availability[product] ?? .available
+    }
 }

@@ -51,22 +51,13 @@ struct TodayView: View {
                         }
                     }
 
-                    if !store.snapshot.minutePrecipitation.isEmpty {
-                        NextHourPrecipitationCard(samples: store.snapshot.minutePrecipitation)
-                    }
-
-                    HourlyForecastStrip(
-                        items: Array(store.snapshot.hourly.prefix(12)),
-                        onSeeAll: router.showHourlyForecast
-                    )
-
-                    DailyForecastPreview(
-                        items: Array(store.snapshot.daily.prefix(3)),
-                        onSeeAll: router.showDailyForecast
-                    )
+                    minutePrecipitationSection
+                    hourlySection
+                    dailySection
 
                     RadarPreviewCard(
                         location: store.snapshot.location,
+                        availability: store.snapshot.availability(for: .radar),
                         onOpen: router.showRadar
                     )
 
@@ -87,6 +78,57 @@ struct TodayView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+    }
+
+    @ViewBuilder
+    private var minutePrecipitationSection: some View {
+        if !store.snapshot.minutePrecipitation.isEmpty {
+            NextHourPrecipitationCard(samples: store.snapshot.minutePrecipitation)
+        } else if let message = store.snapshot
+            .availability(for: .minutePrecipitation)
+            .message {
+            WeatherUnavailableCard(
+                title: "Next-hour precipitation unavailable",
+                message: message,
+                icon: "drop.triangle"
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var hourlySection: some View {
+        if store.snapshot.hourly.isEmpty {
+            WeatherUnavailableCard(
+                title: "Hourly forecast unavailable",
+                message: store.snapshot
+                    .availability(for: .hourlyForecast)
+                    .message ?? "No hourly forecast data was returned.",
+                icon: "clock.badge.exclamationmark"
+            )
+        } else {
+            HourlyForecastStrip(
+                items: Array(store.snapshot.hourly.prefix(12)),
+                onSeeAll: router.showHourlyForecast
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var dailySection: some View {
+        if store.snapshot.daily.isEmpty {
+            WeatherUnavailableCard(
+                title: "Daily forecast unavailable",
+                message: store.snapshot
+                    .availability(for: .dailyForecast)
+                    .message ?? "No daily forecast data was returned.",
+                icon: "calendar.badge.exclamationmark"
+            )
+        } else {
+            DailyForecastPreview(
+                items: Array(store.snapshot.daily.prefix(3)),
+                onSeeAll: router.showDailyForecast
+            )
+        }
     }
 }
 

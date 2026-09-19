@@ -130,6 +130,16 @@ enum MockWeather {
                 uvIndex: 5,
                 source: appleSource
             ),
+            availability: [
+                .currentConditions: .available,
+                .hourlyForecast: .available,
+                .dailyForecast: .available,
+                .alerts: .available,
+                .radar: .unavailable("NOAA radar is not connected in preview mode."),
+                .minutePrecipitation: .available,
+                .uvIndex: .available,
+                .solarEvents: .available
+            ],
             fetchedAt: now
         )
     }

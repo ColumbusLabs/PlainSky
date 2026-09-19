@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RadarPreviewCard: View {
     let location: WeatherLocation
+    let availability: WeatherProductAvailability
     var onOpen: (() -> Void)?
 
     var body: some View {
@@ -46,6 +47,24 @@ struct RadarPreviewCard: View {
                             }
                             .foregroundStyle(.white.opacity(0.82))
                             .padding(14)
+                        }
+
+                        if let message = availability.message {
+                            VStack {
+                                HStack(spacing: 7) {
+                                    Image(systemName: "info.circle.fill")
+                                    Text(message)
+                                        .lineLimit(1)
+                                }
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.88))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 7)
+                                .background(.black.opacity(0.32), in: Capsule())
+
+                                Spacer()
+                            }
+                            .padding(10)
                         }
                     }
                     .frame(height: 150)

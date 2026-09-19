@@ -38,6 +38,7 @@ final class WeatherRepositoryTests: XCTestCase {
         XCTAssertEqual(snapshot.current.humidity, 0.41)
         XCTAssertEqual(snapshot.current.source.provider, .nwsObservation)
         XCTAssertFalse(snapshot.minutePrecipitation.isEmpty)
+        XCTAssertEqual(snapshot.availability(for: .minutePrecipitation), .available)
     }
 
     func testSupplementalCurrentUsedOnlyWhenPrimaryCurrentMissing() async throws {
@@ -67,6 +68,36 @@ final class WeatherRepositoryTests: XCTestCase {
 
         XCTAssertEqual(snapshot.current.temperature, 77)
         XCTAssertEqual(snapshot.current.source.provider, .weatherKit)
+        XCTAssertEqual(
+            snapshot.availability(for: .minutePrecipitation),
+            .unsupported("Next-hour precipitation is not available for this location.")
+        )
+    }
+
+    func testSupplementalFailureIsRecordedWithoutDestroyingPrimaryForecast() async throws {
+        let repository = LiveWeatherRepository(
+            primary: FakePrimaryProvider(
+                payload: PrimaryWeatherPayload(
+                    current: MockWeather.snapshot.current,
+                    hourly: MockWeather.snapshot.hourly,
+                    daily: MockWeather.snapshot.daily,
+                    alerts: []
+                )
+            ),
+            supplemental: ThrowingSupplementalProvider()
+        )
+
+        let snapshot = try await repository.load(location: MockWeather.snapshot.location)
+
+        XCTAssertFalse(snapshot.hourly.isEmpty)
+
+        guard case .unavailable = snapshot.availability(for: .minutePrecipitation) else {
+            return XCTFail("Expected minute precipitation to retain supplemental failure state.")
+        }
+
+        guard case .unavailable = snapshot.availability(for: .uvIndex) else {
+            return XCTFail("Expected UV to retain supplemental failure state.")
+        }
     }
 
     func testMissingCurrentFromBothProvidersFails() async {
@@ -114,5 +145,11 @@ private struct FakeSupplementalProvider: SupplementalWeatherProviding {
 
     func weather(for location: WeatherLocation) async throws -> SupplementalWeatherPayload {
         payload
+    }
+}
+
+private struct ThrowingSupplementalProvider: SupplementalWeatherProviding {
+    func weather(for location: WeatherLocation) async throws -> SupplementalWeatherPayload {
+        throw ProviderError.notConfigured("Supplemental provider unavailable in test.")
     }
 }

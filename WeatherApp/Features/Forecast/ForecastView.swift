@@ -29,12 +29,7 @@ struct ForecastView: View {
                     .pickerStyle(.segmented)
                     .accessibilityLabel("Forecast view")
 
-                    switch router.forecastMode {
-                    case .daily:
-                        DailyForecastList(items: store.snapshot.daily)
-                    case .hourly:
-                        HourlyForecastView(items: store.snapshot.hourly)
-                    }
+                    forecastContent
 
                     SourceSummaryCard(snapshot: store.snapshot)
                 }
@@ -48,6 +43,35 @@ struct ForecastView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+    }
+
+    @ViewBuilder
+    private var forecastContent: some View {
+        switch router.forecastMode {
+        case .daily:
+            if store.snapshot.daily.isEmpty {
+                WeatherUnavailableCard(
+                    title: "Daily forecast unavailable",
+                    message: store.snapshot
+                        .availability(for: .dailyForecast)
+                        .message ?? "No daily forecast data was returned."
+                )
+            } else {
+                DailyForecastList(items: store.snapshot.daily)
+            }
+
+        case .hourly:
+            if store.snapshot.hourly.isEmpty {
+                WeatherUnavailableCard(
+                    title: "Hourly forecast unavailable",
+                    message: store.snapshot
+                        .availability(for: .hourlyForecast)
+                        .message ?? "No hourly forecast data was returned."
+                )
+            } else {
+                HourlyForecastView(items: store.snapshot.hourly)
+            }
+        }
     }
 
     private var header: some View {

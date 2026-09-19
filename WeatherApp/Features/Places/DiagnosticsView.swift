@@ -35,6 +35,7 @@ struct DiagnosticsView: View {
                 LazyVStack(spacing: 16) {
                     locationCard
                     requestStateCard
+                    availabilityCard
 
                     ForEach(Array(sourceGroups.enumerated()), id: \.offset) { _, group in
                         DiagnosticSourceCard(title: group.0, metadata: group.1)
@@ -91,6 +92,10 @@ struct DiagnosticsView: View {
                     label: "Current location",
                     value: store.snapshot.location.isCurrentLocation ? "Yes" : "No"
                 )
+                DiagnosticValueRow(
+                    label: "Units",
+                    value: store.unitSystem.title
+                )
             }
         }
     }
@@ -115,6 +120,64 @@ struct DiagnosticsView: View {
                     .foregroundStyle(WeatherTheme.tertiaryText)
                     .padding(.top, 3)
             }
+        }
+    }
+
+    private var availabilityCard: some View {
+        WeatherCard {
+            VStack(alignment: .leading, spacing: 0) {
+                SectionHeader(title: "Product availability")
+                    .padding(.bottom, 8)
+
+                ForEach(Array(WeatherProduct.allCases.enumerated()), id: \.element.id) { index, product in
+                    let availability = store.snapshot.availability(for: product)
+
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Circle()
+                            .fill(availabilityColor(availability))
+                            .frame(width: 7, height: 7)
+
+                        Text(product.displayName)
+                            .font(.caption)
+                            .foregroundStyle(WeatherTheme.secondaryText)
+
+                        Spacer(minLength: 8)
+
+                        Text(availabilityLabel(availability))
+                            .font(.caption.monospaced())
+                            .foregroundStyle(WeatherTheme.primaryText)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    .padding(.vertical, 8)
+
+                    if index < WeatherProduct.allCases.count - 1 {
+                        Divider()
+                            .overlay(WeatherTheme.divider)
+                    }
+                }
+            }
+        }
+    }
+
+    private func availabilityLabel(_ availability: WeatherProductAvailability) -> String {
+        switch availability {
+        case .available:
+            "Available"
+        case .unsupported:
+            "Unsupported"
+        case .unavailable:
+            "Unavailable"
+        }
+    }
+
+    private func availabilityColor(_ availability: WeatherProductAvailability) -> Color {
+        switch availability {
+        case .available:
+            WeatherTheme.accent
+        case .unsupported:
+            .secondary
+        case .unavailable:
+            .orange
         }
     }
 
