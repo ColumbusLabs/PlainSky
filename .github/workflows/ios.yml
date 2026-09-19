@@ -133,6 +133,16 @@ jobs:
           sleep 2
           xcrun simctl io "$UDID" screenshot visual-smoke/today-light.png
 
+      - name: Capture live NWS Today
+        continue-on-error: true
+        timeout-minutes: 2
+        run: |
+          UDID="${{ steps.simulator.outputs.udid }}"
+          xcrun simctl ui "$UDID" appearance dark
+          xcrun simctl launch --terminate-running-process "$UDID" com.columbuslabs.weatherapp --skip-onboarding --live-nws
+          sleep 20
+          xcrun simctl io "$UDID" screenshot visual-smoke/live-nws-today.png
+
       - name: Upload visual smoke screenshots
         uses: actions/upload-artifact@v4
         with:
