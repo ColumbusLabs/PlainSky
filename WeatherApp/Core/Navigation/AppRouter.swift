@@ -1,10 +1,27 @@
+import Foundation
 import Observation
 
 @MainActor
 @Observable
 final class AppRouter {
-    var selectedTab: AppTab = .today
-    var forecastMode: ForecastMode = .daily
+    var selectedTab: AppTab
+    var forecastMode: ForecastMode
+
+    init(arguments: [String] = ProcessInfo.processInfo.arguments) {
+        if arguments.contains("--weather-tab=forecast") {
+            selectedTab = .forecast
+        } else if arguments.contains("--weather-tab=radar") {
+            selectedTab = .radar
+        } else if arguments.contains("--weather-tab=places") {
+            selectedTab = .places
+        } else {
+            selectedTab = .today
+        }
+
+        forecastMode = arguments.contains("--weather-forecast=hourly")
+            ? .hourly
+            : .daily
+    }
 
     func showHourlyForecast() {
         forecastMode = .hourly
