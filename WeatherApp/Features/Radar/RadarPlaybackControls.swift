@@ -11,20 +11,11 @@ struct RadarPlaybackControls: View {
     var body: some View {
         VStack(spacing: 12) {
             HStack {
-                Menu {
-                    Picker("Radar layer", selection: $playback.layer) {
-                        ForEach(RadarLayer.allCases) { layer in
-                            Label(layer.title, systemImage: layer.symbol)
-                                .tag(layer)
-                        }
-                    }
-                } label: {
-                    Label(playback.layer.title, systemImage: "square.3.layers.3d")
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 11)
-                        .padding(.vertical, 8)
-                        .background(.thinMaterial, in: Capsule())
-                }
+                Label("Base reflectivity", systemImage: "cloud.rain")
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 11)
+                    .padding(.vertical, 8)
+                    .background(.thinMaterial, in: Capsule())
 
                 Spacer()
 

@@ -3,8 +3,14 @@ import SwiftUI
 
 struct RadarView: View {
     @Environment(WeatherStore.self) private var store
-    @State private var cameraPosition: MapCameraPosition = .automatic
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @State private var playback = RadarPlaybackState()
+    @State private var isLoadingRadar = false
+    @State private var radarError: String?
+    @State private var recenterToken = 0
+
+    private let radarProvider = NOAARadarProvider()
 
     var body: some View {
         ZStack {
@@ -13,24 +19,27 @@ struct RadarView: View {
 
             RadarMapView(
                 location: store.snapshot.location,
-                cameraPosition: $cameraPosition
+                frame: playback.selectedFrame,
+                recenterToken: recenterToken
             )
             .zIndex(1)
 
             VStack(spacing: 12) {
                 RadarHeader(
                     location: store.snapshot.location,
-                    onRecenter: recenter
+                    isLoading: isLoadingRadar,
+                    onRecenter: { recenterToken += 1 },
+                    onRefresh: {
+                        Task { await loadRadar() }
+                    }
                 )
 
                 Spacer()
 
-                if playback.frames.isEmpty {
-                    RadarUnavailableCard(
-                        message: store.snapshot
-                            .availability(for: .radar)
-                            .message ?? "No radar frames are currently available."
-                    )
+                if isLoadingRadar && playback.frames.isEmpty {
+                    RadarLoadingCard()
+                } else if let radarError, playback.frames.isEmpty {
+                    RadarUnavailableCard(message: radarError)
                 }
 
                 RadarPlaybackControls(playback: playback)
@@ -42,27 +51,52 @@ struct RadarView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .task(id: store.snapshot.location.id) {
-            recenter()
+            recenterToken += 1
+            await loadRadar()
+        }
+        .task(id: playback.isPlaying) {
+            guard playback.isPlaying else { return }
+
+            while playback.isPlaying && !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(650))
+
+                guard playback.isPlaying && !Task.isCancelled else { break }
+                playback.advance()
+            }
+        }
+        .onChange(of: reduceMotion) { _, enabled in
+            if enabled {
+                playback.isPlaying = false
+            }
         }
     }
 
-    private func recenter() {
-        cameraPosition = .region(
-            MKCoordinateRegion(
-                center: CLLocationCoordinate2D(
-                    latitude: store.snapshot.location.latitude,
-                    longitude: store.snapshot.location.longitude
-                ),
-                latitudinalMeters: 180_000,
-                longitudinalMeters: 180_000
-            )
-        )
+    @MainActor
+    private func loadRadar() async {
+        playback.isPlaying = false
+        isLoadingRadar = true
+        radarError = nil
+
+        do {
+            let frames = try await radarProvider.frames(for: store.snapshot.location)
+            playback.replaceFrames(frames)
+
+            if frames.isEmpty {
+                radarError = "NOAA radar did not return any recent frames."
+            }
+        } catch {
+            radarError = error.localizedDescription
+        }
+
+        isLoadingRadar = false
     }
 }
 
 private struct RadarHeader: View {
     let location: WeatherLocation
+    let isLoading: Bool
     let onRecenter: () -> Void
+    let onRefresh: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
@@ -85,6 +119,21 @@ private struct RadarHeader: View {
                 .padding(.vertical, 7)
                 .background(.thinMaterial, in: Capsule())
 
+            Button(action: onRefresh) {
+                Group {
+                    if isLoading {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                }
+                .font(.system(size: 16, weight: .semibold))
+                .frame(width: 40, height: 40)
+                .background(.thinMaterial, in: Circle())
+            }
+            .disabled(isLoading)
+            .accessibilityLabel("Refresh radar")
+
             Button(action: onRecenter) {
                 Image(systemName: "location.fill")
                     .font(.system(size: 16, weight: .semibold))
@@ -96,6 +145,28 @@ private struct RadarHeader: View {
         .foregroundStyle(.primary)
         .padding(14)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+    }
+}
+
+private struct RadarLoadingCard: View {
+    var body: some View {
+        HStack(spacing: 12) {
+            ProgressView()
+                .tint(WeatherTheme.accent)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Loading NOAA radar")
+                    .font(.subheadline.weight(.semibold))
+
+                Text("Finding the latest advertised radar frames.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
