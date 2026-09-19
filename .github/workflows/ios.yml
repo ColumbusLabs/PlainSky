@@ -30,13 +30,47 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build
 
-      - name: Compile tests
+      - name: Select available iPhone simulator
+        id: simulator
+        run: |
+          UDID="$(python3 - <<'PY'
+          import json
+          import subprocess
+
+          payload = json.loads(
+              subprocess.check_output(
+                  ["xcrun", "simctl", "list", "devices", "available", "-j"],
+                  text=True,
+              )
+          )
+
+          for runtime in sorted(payload["devices"].keys(), reverse=True):
+              for device in payload["devices"][runtime]:
+                  if device.get("isAvailable") and device["name"].startswith("iPhone"):
+                      print(device["udid"])
+                      raise SystemExit(0)
+
+          raise SystemExit("No available iPhone simulator found")
+          PY
+          )"
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          echo "Using simulator $UDID"
+
+      - name: Boot simulator
+        run: |
+          xcrun simctl boot "${{ steps.simulator.outputs.udid }}" || true
+          xcrun simctl bootstatus "${{ steps.simulator.outputs.udid }}" -b
+
+      - name: Run unit tests
         run: |
           xcodebuild \
             -project WeatherApp.xcodeproj \
             -scheme WeatherApp \
             -configuration Debug \
-            -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO \
-            build-for-testing
+            -destination "id=${{ steps.simulator.outputs.udid }}" \
+            test
+
+      - name: Shutdown simulator
+        if: always()
+        run: |
+          xcrun simctl shutdown "${{ steps.simulator.outputs.udid }}" || true
