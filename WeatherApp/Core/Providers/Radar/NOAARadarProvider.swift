@@ -15,6 +15,18 @@ struct NOAARadarProvider: RadarProviding {
         self.maximumFrames = maximumFrames
     }
 
+    static func supports(location: WeatherLocation) -> Bool {
+        let latitude = location.latitude
+        let longitude = location.longitude
+
+        return (20...55).contains(latitude) && (-130 ... -60).contains(longitude)
+            || (50...72).contains(latitude)
+                && ((-180 ... -129).contains(longitude) || (170...180).contains(longitude))
+            || (18...23).contains(latitude) && (-161 ... -154).contains(longitude)
+            || (17...20).contains(latitude) && (-69 ... -63).contains(longitude)
+            || (12...15).contains(latitude) && (143...147).contains(longitude)
+    }
+
     func frames(for location: WeatherLocation) async throws -> [RadarFrame] {
         let configuration = try configuration(for: location)
         let capabilitiesURL = try capabilitiesURL(for: configuration)

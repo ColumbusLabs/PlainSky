@@ -3,22 +3,33 @@ import Foundation
 enum AppDataMode: String, Sendable {
     case preview
     case liveNWS
+    case liveNWSWeatherKit
 
     var title: String {
         switch self {
         case .preview:
             "Preview"
         case .liveNWS:
-            "Live NWS"
+            "Live NWS + NOAA"
+        case .liveNWSWeatherKit:
+            "Live NWS + NOAA + WeatherKit"
         }
     }
 }
 
 enum AppEnvironment {
     static var dataMode: AppDataMode {
-        ProcessInfo.processInfo.arguments.contains("--live-nws")
-            ? .liveNWS
-            : .preview
+        let arguments = ProcessInfo.processInfo.arguments
+
+        if arguments.contains("--preview-data") {
+            return .preview
+        }
+
+        if arguments.contains("--live-weatherkit") {
+            return .liveNWSWeatherKit
+        }
+
+        return .liveNWS
     }
 
     @MainActor
@@ -27,22 +38,32 @@ enum AppEnvironment {
         case .preview:
             return WeatherStore(repository: PreviewWeatherRepository())
 
-        case .liveNWS:
+        case .liveNWS, .liveNWSWeatherKit:
             var initialSnapshot = MockWeather.snapshot
             initialSnapshot.fetchedAt = .distantPast
 
             return WeatherStore(
-                repository: makeLiveRepository(),
-                snapshot: initialSnapshot
+                repository: makeLiveRepository(
+                    includeWeatherKit: dataMode == .liveNWSWeatherKit
+                ),
+                snapshot: initialSnapshot,
+                isShowingPlaceholderData: true,
+                masksStaleLocationData: true
             )
         }
     }
 
     @MainActor
-    static func makeLiveRepository() -> LiveWeatherRepository {
-        LiveWeatherRepository(
+    static func makeLiveRepository(
+        includeWeatherKit: Bool
+    ) -> LiveWeatherRepository {
+        let supplemental: any SupplementalWeatherProviding = includeWeatherKit
+            ? WeatherKitSupplementalProvider()
+            : DisabledWeatherKitSupplementalProvider()
+
+        return LiveWeatherRepository(
             primary: NWSWeatherProvider(),
-            supplemental: WeatherKitSupplementalProvider()
+            supplemental: supplemental
         )
     }
 }

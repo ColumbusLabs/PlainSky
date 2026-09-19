@@ -118,15 +118,22 @@ struct DiagnosticsView: View {
                     value: store.lastRefreshError ?? "None"
                 )
 
-                Text(
-                    AppEnvironment.dataMode == .preview
-                        ? "Preview data is active. Launch with --live-nws to exercise the keyless NWS primary provider without enabling WeatherKit or NOAA radar."
-                        : "The NWS primary provider is live. WeatherKit supplements and NOAA radar remain intentionally unavailable until their activation passes."
-                )
+                Text(repositoryDescription)
                     .font(.caption)
                     .foregroundStyle(WeatherTheme.tertiaryText)
                     .padding(.top, 3)
             }
+        }
+    }
+
+    private var repositoryDescription: String {
+        switch AppEnvironment.dataMode {
+        case .preview:
+            return "Deterministic preview data is active for validation."
+        case .liveNWS:
+            return "NWS observations, forecasts, alerts, and NOAA radar are live. WeatherKit supplements remain disabled until the Apple capability is enabled."
+        case .liveNWSWeatherKit:
+            return "NWS and NOAA are live, and the app is attempting Apple WeatherKit supplements."
         }
     }
 

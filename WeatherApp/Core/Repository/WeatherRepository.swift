@@ -97,8 +97,11 @@ final class LiveWeatherRepository: WeatherRepository {
             availability[.solarEvents] = .unavailable(reason)
         }
 
-        availability[.radar] = availability[.radar]
-            ?? .unavailable("Radar has not been loaded for this weather snapshot.")
+        if availability[.radar] == nil {
+            availability[.radar] = NOAARadarProvider.supports(location: location)
+                ? .available
+                : .unsupported("NOAA composite radar is not configured for this location.")
+        }
 
         return WeatherSnapshot(
             location: location,
