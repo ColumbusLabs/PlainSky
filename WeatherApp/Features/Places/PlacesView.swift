@@ -3,6 +3,7 @@ import SwiftUI
 struct PlacesView: View {
     @Environment(WeatherStore.self) private var store
     @State private var showingSearch = false
+    @State private var locationService = LocationService()
 
     var body: some View {
         ZStack {
@@ -25,9 +26,32 @@ struct PlacesView: View {
                             Spacer()
                         }
                         .padding(16)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .background(
+                            .ultraThinMaterial,
+                            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        )
                     }
                     .buttonStyle(.plain)
+
+                    currentLocationControl
+
+                    if let errorMessage = locationService.errorMessage {
+                        HStack(spacing: 10) {
+                            Image(systemName: "location.slash.fill")
+                                .foregroundStyle(.orange)
+
+                            Text(errorMessage)
+                                .font(.caption)
+                                .foregroundStyle(WeatherTheme.secondaryText)
+
+                            Spacer(minLength: 0)
+                        }
+                        .padding(14)
+                        .background(
+                            .ultraThinMaterial,
+                            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        )
+                    }
 
                     savedPlaces
 
@@ -45,7 +69,7 @@ struct PlacesView: View {
                                         .font(.headline)
                                         .foregroundStyle(WeatherTheme.primaryText)
 
-                                    Text("Appearance, sources, privacy, and diagnostics")
+                                    Text("Appearance, units, sources, privacy, and diagnostics")
                                         .font(.caption)
                                         .foregroundStyle(WeatherTheme.secondaryText)
                                 }
@@ -73,6 +97,10 @@ struct PlacesView: View {
             }
             .environment(store)
         }
+        .onChange(of: locationService.currentLocation) { _, location in
+            guard let location else { return }
+            store.setCurrentLocationAndRefresh(location)
+        }
     }
 
     private var header: some View {
@@ -94,6 +122,59 @@ struct PlacesView: View {
                     .tint(WeatherTheme.primaryText)
             }
         }
+    }
+
+    private var currentLocationControl: some View {
+        Button {
+            locationService.requestCurrentLocation()
+        } label: {
+            WeatherCard {
+                HStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(WeatherTheme.accent.opacity(0.12))
+                            .frame(width: 42, height: 42)
+
+                        if locationService.isResolving {
+                            ProgressView()
+                                .tint(WeatherTheme.accent)
+                        } else {
+                            Image(systemName: "location.fill")
+                                .foregroundStyle(WeatherTheme.accent)
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(
+                            locationService.isResolving
+                                ? "Updating current location…"
+                                : "Update Current Location"
+                        )
+                        .font(.headline)
+                        .foregroundStyle(WeatherTheme.primaryText)
+
+                        if let current = store.savedLocations.first(where: { $0.isCurrentLocation }) {
+                            Text("Currently \(current.displayName)")
+                                .font(.caption)
+                                .foregroundStyle(WeatherTheme.secondaryText)
+                        } else {
+                            Text("Use your iPhone location for local weather")
+                                .font(.caption)
+                                .foregroundStyle(WeatherTheme.secondaryText)
+                        }
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "arrow.clockwise")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(WeatherTheme.tertiaryText)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(locationService.isResolving)
+        .accessibilityHint("Requests your current location and refreshes weather")
     }
 
     private var savedPlaces: some View {
