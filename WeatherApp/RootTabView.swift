@@ -14,11 +14,7 @@ struct RootTabView: View {
             }
 
             NavigationStack {
-                PlaceholderScreen(
-                    icon: "chart.xyaxis.line",
-                    title: "Forecast",
-                    subtitle: "Hours and days, without the noise."
-                )
+                ForecastView()
             }
             .tag(AppTab.forecast)
             .tabItem {
