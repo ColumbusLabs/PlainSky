@@ -30,10 +30,20 @@ struct CurrentConditionsHero: View {
                 "Current temperature \(WeatherFormatters.temperature(current.temperature, unitSystem: store.unitSystem))"
             )
 
-            Text(current.conditionDescription)
-                .font(.title3.weight(.medium))
-                .foregroundStyle(WeatherTheme.primaryText)
-                .multilineTextAlignment(.center)
+            VStack(spacing: 4) {
+                Text(current.conditionDescription)
+                    .font(.title3.weight(.medium))
+                    .foregroundStyle(WeatherTheme.primaryText)
+                    .multilineTextAlignment(.center)
+
+                if let apparentTemperature = current.apparentTemperature {
+                    Text(
+                        "Feels like \(WeatherFormatters.temperature(apparentTemperature, unitSystem: store.unitSystem))"
+                    )
+                    .font(.subheadline)
+                    .foregroundStyle(WeatherTheme.secondaryText)
+                }
+            }
 
             if let today {
                 ViewThatFits(in: .horizontal) {

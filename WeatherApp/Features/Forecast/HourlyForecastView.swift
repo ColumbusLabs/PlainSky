@@ -8,6 +8,7 @@ struct HourlyForecastView: View {
 
     @State private var metric: HourlyMetric = .temperature
     @State private var horizon: HourlyHorizon = .twentyFour
+    @State private var selectedHour: HourlyForecastItem?
 
     private var visibleItems: [HourlyForecastItem] {
         Array(items.prefix(horizon.hourCount))
@@ -52,10 +53,16 @@ struct HourlyForecastView: View {
 
                     HourlyDetailRows(
                         items: visibleItems,
-                        unitSystem: store.unitSystem
+                        unitSystem: store.unitSystem,
+                        onSelect: { selectedHour = $0 }
                     )
                 }
             }
+        }
+        .sheet(item: $selectedHour) { hour in
+            HourlyForecastDetailSheet(item: hour)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
     }
 
@@ -124,51 +131,23 @@ struct HourlyForecastView: View {
 struct HourlyDetailRows: View {
     let items: [HourlyForecastItem]
     let unitSystem: WeatherUnitSystem
+    var onSelect: ((HourlyForecastItem) -> Void)?
 
     var body: some View {
         VStack(spacing: 0) {
             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                HStack(spacing: 12) {
-                    Text(index == 0 ? "Now" : WeatherFormatters.hour(item.date))
-                        .font(.subheadline.weight(index == 0 ? .semibold : .regular))
-                        .foregroundStyle(WeatherTheme.primaryText)
-                        .frame(width: 62, alignment: .leading)
-
-                    Image(systemName: item.condition.symbolName)
-                        .symbolRenderingMode(.multicolor)
-                        .frame(width: 28)
-
-                    Text(
-                        WeatherFormatters.temperature(
-                            item.temperature,
-                            unitSystem: unitSystem
-                        )
-                    )
-                    .font(.headline.monospacedDigit())
-                    .foregroundStyle(WeatherTheme.primaryText)
-
-                    Spacer()
-
-                    Label(
-                        WeatherFormatters.percent(item.precipitationChance),
-                        systemImage: "drop.fill"
-                    )
-                    .font(.caption)
-                    .foregroundStyle(WeatherTheme.accent)
-                    .frame(width: 58, alignment: .trailing)
-
-                    Text(
-                        WeatherFormatters.wind(
-                            speed: item.windSpeed,
-                            direction: nil,
-                            unitSystem: unitSystem
-                        )
-                    )
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(WeatherTheme.secondaryText)
-                    .frame(width: unitSystem == .us ? 54 : 68, alignment: .trailing)
+                Group {
+                    if let onSelect {
+                        Button {
+                            onSelect(item)
+                        } label: {
+                            row(item: item, index: index, showsChevron: true)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        row(item: item, index: index, showsChevron: false)
+                    }
                 }
-                .padding(.vertical, 11)
 
                 if index < items.count - 1 {
                     Divider()
@@ -176,6 +155,62 @@ struct HourlyDetailRows: View {
                 }
             }
         }
+    }
+
+    private func row(
+        item: HourlyForecastItem,
+        index: Int,
+        showsChevron: Bool
+    ) -> some View {
+        HStack(spacing: 12) {
+            Text(index == 0 ? "Now" : WeatherFormatters.hour(item.date))
+                .font(.subheadline.weight(index == 0 ? .semibold : .regular))
+                .foregroundStyle(WeatherTheme.primaryText)
+                .frame(width: 62, alignment: .leading)
+
+            Image(systemName: item.condition.symbolName)
+                .symbolRenderingMode(.multicolor)
+                .frame(width: 28)
+
+            Text(
+                WeatherFormatters.temperature(
+                    item.temperature,
+                    unitSystem: unitSystem
+                )
+            )
+            .font(.headline.monospacedDigit())
+            .foregroundStyle(WeatherTheme.primaryText)
+
+            Spacer()
+
+            Label(
+                WeatherFormatters.percent(item.precipitationChance),
+                systemImage: "drop.fill"
+            )
+            .font(.caption)
+            .foregroundStyle(WeatherTheme.accent)
+            .frame(width: 58, alignment: .trailing)
+
+            Text(
+                WeatherFormatters.wind(
+                    speed: item.windSpeed,
+                    direction: nil,
+                    unitSystem: unitSystem
+                )
+            )
+            .font(.caption.monospacedDigit())
+            .foregroundStyle(WeatherTheme.secondaryText)
+            .frame(width: unitSystem == .us ? 54 : 68, alignment: .trailing)
+
+            if showsChevron {
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(WeatherTheme.tertiaryText)
+            }
+        }
+        .padding(.vertical, 11)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 }
 

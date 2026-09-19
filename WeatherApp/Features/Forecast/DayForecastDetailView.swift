@@ -2,6 +2,8 @@ import SwiftUI
 
 struct DayForecastDetailView: View {
     @Environment(WeatherStore.self) private var store
+    @State private var selectedHour: HourlyForecastItem?
+
     let day: DailyForecastItem
 
     private var matchingHours: [HourlyForecastItem] {
@@ -49,7 +51,8 @@ struct DayForecastDetailView: View {
 
                                 HourlyDetailRows(
                                     items: matchingHours,
-                                    unitSystem: store.unitSystem
+                                    unitSystem: store.unitSystem,
+                                    onSelect: { selectedHour = $0 }
                                 )
                             }
                         }
@@ -71,6 +74,11 @@ struct DayForecastDetailView: View {
         .navigationTitle(WeatherFormatters.fullDay(day.date))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+        .sheet(item: $selectedHour) { hour in
+            HourlyForecastDetailSheet(item: hour)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
     }
 
     private var hero: some View {
