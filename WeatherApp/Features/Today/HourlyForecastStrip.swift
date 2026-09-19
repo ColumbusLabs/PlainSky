@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct HourlyForecastStrip: View {
+    @Environment(WeatherStore.self) private var store
+
     let items: [HourlyForecastItem]
     var onSeeAll: (() -> Void)?
 
@@ -27,9 +29,14 @@ struct HourlyForecastStrip: View {
                                     .symbolRenderingMode(.multicolor)
                                     .font(.title3)
 
-                                Text(WeatherFormatters.temperature(item.temperature))
-                                    .font(.headline.monospacedDigit())
-                                    .foregroundStyle(WeatherTheme.primaryText)
+                                Text(
+                                    WeatherFormatters.temperature(
+                                        item.temperature,
+                                        unitSystem: store.unitSystem
+                                    )
+                                )
+                                .font(.headline.monospacedDigit())
+                                .foregroundStyle(WeatherTheme.primaryText)
 
                                 HStack(spacing: 3) {
                                     Image(systemName: "drop.fill")

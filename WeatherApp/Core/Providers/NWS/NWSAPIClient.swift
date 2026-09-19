@@ -15,12 +15,24 @@ struct NWSAPIClient {
         return try await fetch(url: try makeURL(path: path))
     }
 
-    func forecast(url: URL) async throws -> NWSForecastResponse {
-        try await fetch(url: url, queryItems: [URLQueryItem(name: "units", value: "us")])
+    func forecast(
+        url: URL,
+        unitSystem: WeatherUnitSystem = .us
+    ) async throws -> NWSForecastResponse {
+        try await fetch(
+            url: url,
+            queryItems: [URLQueryItem(name: "units", value: unitSystem.nwsQueryValue)]
+        )
     }
 
-    func hourlyForecast(url: URL) async throws -> NWSForecastResponse {
-        try await fetch(url: url, queryItems: [URLQueryItem(name: "units", value: "us")])
+    func hourlyForecast(
+        url: URL,
+        unitSystem: WeatherUnitSystem = .us
+    ) async throws -> NWSForecastResponse {
+        try await fetch(
+            url: url,
+            queryItems: [URLQueryItem(name: "units", value: unitSystem.nwsQueryValue)]
+        )
     }
 
     func stations(url: URL) async throws -> NWSFeatureCollection<NWSStationProperties> {

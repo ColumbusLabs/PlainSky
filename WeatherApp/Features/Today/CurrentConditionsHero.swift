@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct CurrentConditionsHero: View {
+    @Environment(WeatherStore.self) private var store
+
     let current: CurrentConditions
     let today: DailyForecastItem?
 
@@ -11,12 +13,19 @@ struct CurrentConditionsHero: View {
                 .font(.system(size: 44, weight: .medium))
                 .accessibilityHidden(true)
 
-            Text(WeatherFormatters.temperature(current.temperature))
-                .font(.system(size: 88, weight: .thin, design: .rounded))
-                .foregroundStyle(WeatherTheme.primaryText)
-                .contentTransition(.numericText())
-                .minimumScaleFactor(0.65)
-                .accessibilityLabel("Current temperature \(WeatherFormatters.temperature(current.temperature))")
+            Text(
+                WeatherFormatters.temperature(
+                    current.temperature,
+                    unitSystem: store.unitSystem
+                )
+            )
+            .font(.system(size: 88, weight: .thin, design: .rounded))
+            .foregroundStyle(WeatherTheme.primaryText)
+            .contentTransition(.numericText())
+            .minimumScaleFactor(0.65)
+            .accessibilityLabel(
+                "Current temperature \(WeatherFormatters.temperature(current.temperature, unitSystem: store.unitSystem))"
+            )
 
             Text(current.conditionDescription)
                 .font(.title3.weight(.medium))
@@ -25,13 +34,17 @@ struct CurrentConditionsHero: View {
             if let today {
                 HStack(spacing: 14) {
                     Label {
-                        Text("High \(WeatherFormatters.temperature(today.daytimeHigh))")
+                        Text(
+                            "High \(WeatherFormatters.temperature(today.daytimeHigh, unitSystem: store.unitSystem))"
+                        )
                     } icon: {
                         Image(systemName: "arrow.up")
                     }
 
                     Label {
-                        Text("Low \(WeatherFormatters.temperature(today.overnightLow))")
+                        Text(
+                            "Low \(WeatherFormatters.temperature(today.overnightLow, unitSystem: store.unitSystem))"
+                        )
                     } icon: {
                         Image(systemName: "arrow.down")
                     }

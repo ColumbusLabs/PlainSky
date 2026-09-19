@@ -8,6 +8,7 @@ struct WeatherPreferences {
         static let savedLocations = "weather.savedLocations"
         static let lastLocation = "weather.lastLocation"
         static let appearance = "weather.appearance"
+        static let unitSystem = "weather.unitSystem"
     }
 
     private let defaults: UserDefaults
@@ -45,5 +46,14 @@ struct WeatherPreferences {
 
     func saveAppearance(_ appearance: AppAppearance) {
         defaults.set(appearance.rawValue, forKey: Key.appearance)
+    }
+
+    func loadUnitSystem() -> WeatherUnitSystem? {
+        guard let rawValue = defaults.string(forKey: Key.unitSystem) else { return nil }
+        return WeatherUnitSystem(rawValue: rawValue)
+    }
+
+    func saveUnitSystem(_ unitSystem: WeatherUnitSystem) {
+        defaults.set(unitSystem.rawValue, forKey: Key.unitSystem)
     }
 }

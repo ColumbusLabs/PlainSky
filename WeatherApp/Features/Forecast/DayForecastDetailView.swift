@@ -25,7 +25,8 @@ struct DayForecastDetailView: View {
                         temperature: day.daytimeHigh,
                         precipitationChance: day.daytimePrecipitationChance,
                         wind: day.windDescription,
-                        icon: day.daytimeCondition.symbolName
+                        icon: day.daytimeCondition.symbolName,
+                        unitSystem: store.unitSystem
                     )
 
                     if let nightDescription = day.nighttimeDescription {
@@ -36,7 +37,8 @@ struct DayForecastDetailView: View {
                             temperature: day.overnightLow,
                             precipitationChance: day.nighttimePrecipitationChance,
                             wind: day.windDescription,
-                            icon: "moon.stars.fill"
+                            icon: "moon.stars.fill",
+                            unitSystem: store.unitSystem
                         )
                     }
 
@@ -45,7 +47,10 @@ struct DayForecastDetailView: View {
                             VStack(alignment: .leading, spacing: 14) {
                                 SectionHeader(title: "Hours")
 
-                                HourlyDetailRows(items: matchingHours)
+                                HourlyDetailRows(
+                                    items: matchingHours,
+                                    unitSystem: store.unitSystem
+                                )
                             }
                         }
                     }
@@ -80,17 +85,29 @@ struct DayForecastDetailView: View {
 
             HStack(alignment: .firstTextBaseline, spacing: 20) {
                 VStack(spacing: 3) {
-                    Text(WeatherFormatters.temperature(day.daytimeHigh))
-                        .font(.system(size: 46, weight: .medium, design: .rounded))
+                    Text(
+                        WeatherFormatters.temperature(
+                            day.daytimeHigh,
+                            unitSystem: store.unitSystem
+                        )
+                    )
+                    .font(.system(size: 46, weight: .medium, design: .rounded))
+
                     Text("Day high")
                         .font(.caption)
                         .foregroundStyle(WeatherTheme.secondaryText)
                 }
 
                 VStack(spacing: 3) {
-                    Text(WeatherFormatters.temperature(day.overnightLow))
-                        .font(.system(size: 34, weight: .regular, design: .rounded))
-                        .foregroundStyle(WeatherTheme.secondaryText)
+                    Text(
+                        WeatherFormatters.temperature(
+                            day.overnightLow,
+                            unitSystem: store.unitSystem
+                        )
+                    )
+                    .font(.system(size: 34, weight: .regular, design: .rounded))
+                    .foregroundStyle(WeatherTheme.secondaryText)
+
                     Text("Overnight low")
                         .font(.caption)
                         .foregroundStyle(WeatherTheme.tertiaryText)
@@ -119,6 +136,7 @@ private struct ForecastPeriodCard: View {
     let precipitationChance: Double?
     let wind: String?
     let icon: String
+    let unitSystem: WeatherUnitSystem
 
     var body: some View {
         WeatherCard {
@@ -138,7 +156,10 @@ private struct ForecastPeriodCard: View {
                 HStack(spacing: 22) {
                     ForecastFact(
                         label: temperatureLabel,
-                        value: WeatherFormatters.temperature(temperature),
+                        value: WeatherFormatters.temperature(
+                            temperature,
+                            unitSystem: unitSystem
+                        ),
                         icon: "thermometer.medium"
                     )
 

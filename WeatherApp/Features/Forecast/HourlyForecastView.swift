@@ -2,6 +2,8 @@ import Charts
 import SwiftUI
 
 struct HourlyForecastView: View {
+    @Environment(WeatherStore.self) private var store
+
     let items: [HourlyForecastItem]
 
     @State private var metric: HourlyMetric = .temperature
@@ -48,7 +50,10 @@ struct HourlyForecastView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     SectionHeader(title: "Hour by hour")
 
-                    HourlyDetailRows(items: visibleItems)
+                    HourlyDetailRows(
+                        items: visibleItems,
+                        unitSystem: store.unitSystem
+                    )
                 }
             }
         }
@@ -59,20 +64,25 @@ struct HourlyForecastView: View {
         switch metric {
         case .temperature:
             Chart(visibleItems) { item in
+                let value = WeatherFormatters.temperatureValue(
+                    item.temperature,
+                    unitSystem: store.unitSystem
+                )
+
                 LineMark(
                     x: .value("Time", item.date),
-                    y: .value("Temperature", item.temperature)
+                    y: .value("Temperature", value)
                 )
                 .foregroundStyle(WeatherTheme.accent)
                 .lineStyle(.init(lineWidth: 2.5))
 
                 PointMark(
                     x: .value("Time", item.date),
-                    y: .value("Temperature", item.temperature)
+                    y: .value("Temperature", value)
                 )
                 .foregroundStyle(WeatherTheme.accent)
             }
-            .chartYAxisLabel("°F")
+            .chartYAxisLabel(store.unitSystem.temperatureSymbol)
             .weatherChartXAxis()
             .weatherChartFrame()
 
@@ -92,14 +102,19 @@ struct HourlyForecastView: View {
 
         case .wind:
             Chart(visibleItems) { item in
+                let speed = WeatherFormatters.windSpeedValue(
+                    item.windSpeed ?? 0,
+                    unitSystem: store.unitSystem
+                )
+
                 LineMark(
                     x: .value("Time", item.date),
-                    y: .value("Wind", item.windSpeed ?? 0)
+                    y: .value("Wind", speed)
                 )
                 .foregroundStyle(WeatherTheme.accent)
                 .lineStyle(.init(lineWidth: 2.5))
             }
-            .chartYAxisLabel("mph")
+            .chartYAxisLabel(store.unitSystem.windUnit)
             .weatherChartXAxis()
             .weatherChartFrame()
         }
@@ -108,6 +123,7 @@ struct HourlyForecastView: View {
 
 struct HourlyDetailRows: View {
     let items: [HourlyForecastItem]
+    let unitSystem: WeatherUnitSystem
 
     var body: some View {
         VStack(spacing: 0) {
@@ -122,9 +138,14 @@ struct HourlyDetailRows: View {
                         .symbolRenderingMode(.multicolor)
                         .frame(width: 28)
 
-                    Text(WeatherFormatters.temperature(item.temperature))
-                        .font(.headline.monospacedDigit())
-                        .foregroundStyle(WeatherTheme.primaryText)
+                    Text(
+                        WeatherFormatters.temperature(
+                            item.temperature,
+                            unitSystem: unitSystem
+                        )
+                    )
+                    .font(.headline.monospacedDigit())
+                    .foregroundStyle(WeatherTheme.primaryText)
 
                     Spacer()
 
@@ -136,10 +157,16 @@ struct HourlyDetailRows: View {
                     .foregroundStyle(WeatherTheme.accent)
                     .frame(width: 58, alignment: .trailing)
 
-                    Text(WeatherFormatters.wind(speed: item.windSpeed, direction: nil))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(WeatherTheme.secondaryText)
-                        .frame(width: 54, alignment: .trailing)
+                    Text(
+                        WeatherFormatters.wind(
+                            speed: item.windSpeed,
+                            direction: nil,
+                            unitSystem: unitSystem
+                        )
+                    )
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(WeatherTheme.secondaryText)
+                    .frame(width: unitSystem == .us ? 54 : 68, alignment: .trailing)
                 }
                 .padding(.vertical, 11)
 

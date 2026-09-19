@@ -1,9 +1,26 @@
 import Foundation
 
 enum WeatherFormatters {
-    static func temperature(_ value: Double?) -> String {
-        guard let value else { return "—" }
-        return "\(Int(value.rounded()))°"
+    static func temperature(
+        _ fahrenheit: Double?,
+        unitSystem: WeatherUnitSystem = .us
+    ) -> String {
+        guard let fahrenheit else { return "—" }
+        return "\(Int(temperatureValue(fahrenheit, unitSystem: unitSystem).rounded()))°"
+    }
+
+    static func temperatureValue(
+        _ fahrenheit: Double,
+        unitSystem: WeatherUnitSystem
+    ) -> Double {
+        switch unitSystem {
+        case .us:
+            fahrenheit
+        case .metric:
+            Measurement(value: fahrenheit, unit: UnitTemperature.fahrenheit)
+                .converted(to: .celsius)
+                .value
+        }
     }
 
     static func percent(_ fraction: Double?) -> String {
@@ -11,22 +28,59 @@ enum WeatherFormatters {
         return "\(Int((fraction * 100).rounded()))%"
     }
 
-    static func wind(speed: Double?, direction: String?) -> String {
-        guard let speed else { return "—" }
+    static func wind(
+        speed milesPerHour: Double?,
+        direction: String?,
+        unitSystem: WeatherUnitSystem = .us
+    ) -> String {
+        guard let milesPerHour else { return "—" }
 
-        let speedText = "\(Int(speed.rounded())) mph"
+        let speed = windSpeedValue(milesPerHour, unitSystem: unitSystem)
+        let speedText = "\(Int(speed.rounded())) \(unitSystem.windUnit)"
+
         guard let direction, !direction.isEmpty else { return speedText }
         return "\(direction) \(speedText)"
     }
 
-    static func visibility(_ miles: Double?) -> String {
-        guard let miles else { return "—" }
-        return "\(Int(miles.rounded())) mi"
+    static func windSpeedValue(
+        _ milesPerHour: Double,
+        unitSystem: WeatherUnitSystem
+    ) -> Double {
+        switch unitSystem {
+        case .us:
+            milesPerHour
+        case .metric:
+            Measurement(value: milesPerHour, unit: UnitSpeed.milesPerHour)
+                .converted(to: .kilometersPerHour)
+                .value
+        }
     }
 
-    static func pressure(_ millibars: Double?) -> String {
+    static func visibility(
+        _ miles: Double?,
+        unitSystem: WeatherUnitSystem = .us
+    ) -> String {
+        guard let miles else { return "—" }
+
+        let value: Double
+        switch unitSystem {
+        case .us:
+            value = miles
+        case .metric:
+            value = Measurement(value: miles, unit: UnitLength.miles)
+                .converted(to: .kilometers)
+                .value
+        }
+
+        return "\(Int(value.rounded())) \(unitSystem.visibilityUnit)"
+    }
+
+    static func pressure(
+        _ millibars: Double?,
+        unitSystem: WeatherUnitSystem = .us
+    ) -> String {
         guard let millibars else { return "—" }
-        return "\(Int(millibars.rounded())) mb"
+        return "\(Int(millibars.rounded())) \(unitSystem.pressureUnit)"
     }
 
     static func hour(_ date: Date) -> String {

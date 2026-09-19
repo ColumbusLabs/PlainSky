@@ -8,6 +8,13 @@ final class WeatherFormattersTests: XCTestCase {
         XCTAssertEqual(WeatherFormatters.temperature(nil), "—")
     }
 
+    func testMetricTemperatureConversionIsPresentationOnly() {
+        XCTAssertEqual(
+            WeatherFormatters.temperature(68, unitSystem: .metric),
+            "20°"
+        )
+    }
+
     func testProbabilityFormattingUsesProviderFraction() {
         XCTAssertEqual(WeatherFormatters.percent(0.42), "42%")
         XCTAssertEqual(WeatherFormatters.percent(nil), "—")
@@ -21,6 +28,25 @@ final class WeatherFormattersTests: XCTestCase {
         XCTAssertEqual(
             WeatherFormatters.wind(speed: 8.4, direction: nil),
             "8 mph"
+        )
+    }
+
+    func testMetricWindAndVisibilityConversion() {
+        XCTAssertEqual(
+            WeatherFormatters.wind(
+                speed: 10,
+                direction: nil,
+                unitSystem: .metric
+            ),
+            "16 km/h"
+        )
+
+        XCTAssertEqual(
+            WeatherFormatters.visibility(
+                10,
+                unitSystem: .metric
+            ),
+            "16 km"
         )
     }
 }

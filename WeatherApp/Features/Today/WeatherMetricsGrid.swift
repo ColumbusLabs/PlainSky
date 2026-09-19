@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct WeatherMetricsGrid: View {
+    @Environment(WeatherStore.self) private var store
+
     let current: CurrentConditions
     let solar: SolarWeather?
 
@@ -19,9 +21,12 @@ struct WeatherMetricsGrid: View {
                 title: "Wind",
                 value: WeatherFormatters.wind(
                     speed: current.windSpeed,
-                    direction: current.windDirection
+                    direction: current.windDirection,
+                    unitSystem: store.unitSystem
                 ),
-                detail: current.windGust.map { "Gusts \(Int($0.rounded())) mph" }
+                detail: current.windGust.map {
+                    "Gusts \(WeatherFormatters.wind(speed: $0, direction: nil, unitSystem: store.unitSystem))"
+                }
             )
 
             metricButton(
@@ -29,7 +34,9 @@ struct WeatherMetricsGrid: View {
                 icon: "humidity.fill",
                 title: "Humidity",
                 value: WeatherFormatters.percent(current.humidity),
-                detail: current.dewPoint.map { "Dew point \(WeatherFormatters.temperature($0))" }
+                detail: current.dewPoint.map {
+                    "Dew point \(WeatherFormatters.temperature($0, unitSystem: store.unitSystem))"
+                }
             )
 
             metricButton(
@@ -52,7 +59,10 @@ struct WeatherMetricsGrid: View {
                 .visibility,
                 icon: "eye.fill",
                 title: "Visibility",
-                value: WeatherFormatters.visibility(current.visibilityMiles),
+                value: WeatherFormatters.visibility(
+                    current.visibilityMiles,
+                    unitSystem: store.unitSystem
+                ),
                 detail: current.source.sourceName
             )
 
@@ -60,7 +70,10 @@ struct WeatherMetricsGrid: View {
                 .pressure,
                 icon: "gauge.with.dots.needle.33percent",
                 title: "Pressure",
-                value: WeatherFormatters.pressure(current.pressureMillibars),
+                value: WeatherFormatters.pressure(
+                    current.pressureMillibars,
+                    unitSystem: store.unitSystem
+                ),
                 detail: current.source.provider.rawValue
             )
         }

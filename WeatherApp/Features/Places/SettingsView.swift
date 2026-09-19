@@ -10,6 +10,13 @@ struct SettingsView: View {
         )
     }
 
+    private var unitSystemBinding: Binding<WeatherUnitSystem> {
+        Binding(
+            get: { store.unitSystem },
+            set: { store.unitSystem = $0 }
+        )
+    }
+
     var body: some View {
         ZStack {
             WeatherBackdrop(style: .night)
@@ -26,6 +33,23 @@ struct SettingsView: View {
                                 }
                             }
                             .pickerStyle(.segmented)
+                        }
+                    }
+
+                    WeatherCard {
+                        VStack(alignment: .leading, spacing: 14) {
+                            SectionHeader(title: "Display units")
+
+                            Picker("Units", selection: unitSystemBinding) {
+                                ForEach(WeatherUnitSystem.allCases) { unitSystem in
+                                    Text(unitSystem.title).tag(unitSystem)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+
+                            Text("Unit changes are presentation-only conversions. They do not alter the underlying forecast or derive new weather values.")
+                                .font(.caption)
+                                .foregroundStyle(WeatherTheme.tertiaryText)
                         }
                     }
 

@@ -1,11 +1,12 @@
 import SwiftUI
 
 struct WeatherMetricDetailSheet: View {
+    @Environment(WeatherStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+
     let metric: WeatherMetric
     let current: CurrentConditions
     let solar: SolarWeather?
-
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
@@ -95,7 +96,7 @@ struct WeatherMetricDetailSheet: View {
                 SectionHeader(title: "Source")
                 SourceFreshnessView(metadata: source)
 
-                Text("These are provider-supplied weather values. This screen does not derive or reinterpret the meteorology.")
+                Text("These are provider-supplied weather values. Unit changes are display conversions only.")
                     .font(.caption)
                     .foregroundStyle(WeatherTheme.tertiaryText)
             }
@@ -127,7 +128,11 @@ struct WeatherMetricDetailSheet: View {
     private var primaryValue: String {
         switch metric {
         case .wind:
-            WeatherFormatters.wind(speed: current.windSpeed, direction: current.windDirection)
+            WeatherFormatters.wind(
+                speed: current.windSpeed,
+                direction: current.windDirection,
+                unitSystem: store.unitSystem
+            )
         case .humidity:
             WeatherFormatters.percent(current.humidity)
         case .uv:
@@ -135,9 +140,15 @@ struct WeatherMetricDetailSheet: View {
         case .sun:
             solar?.sunset.map(WeatherFormatters.hour) ?? "—"
         case .visibility:
-            WeatherFormatters.visibility(current.visibilityMiles)
+            WeatherFormatters.visibility(
+                current.visibilityMiles,
+                unitSystem: store.unitSystem
+            )
         case .pressure:
-            WeatherFormatters.pressure(current.pressureMillibars)
+            WeatherFormatters.pressure(
+                current.pressureMillibars,
+                unitSystem: store.unitSystem
+            )
         }
     }
 
@@ -157,14 +168,34 @@ struct WeatherMetricDetailSheet: View {
         case .wind:
             return [
                 ("Direction", current.windDirection ?? "—"),
-                ("Speed", current.windSpeed.map { "\(Int($0.rounded())) mph" } ?? "—"),
-                ("Gusts", current.windGust.map { "\(Int($0.rounded())) mph" } ?? "—")
+                (
+                    "Speed",
+                    WeatherFormatters.wind(
+                        speed: current.windSpeed,
+                        direction: nil,
+                        unitSystem: store.unitSystem
+                    )
+                ),
+                (
+                    "Gusts",
+                    WeatherFormatters.wind(
+                        speed: current.windGust,
+                        direction: nil,
+                        unitSystem: store.unitSystem
+                    )
+                )
             ]
 
         case .humidity:
             return [
                 ("Relative humidity", WeatherFormatters.percent(current.humidity)),
-                ("Dew point", WeatherFormatters.temperature(current.dewPoint))
+                (
+                    "Dew point",
+                    WeatherFormatters.temperature(
+                        current.dewPoint,
+                        unitSystem: store.unitSystem
+                    )
+                )
             ]
 
         case .uv:
@@ -180,12 +211,24 @@ struct WeatherMetricDetailSheet: View {
 
         case .visibility:
             return [
-                ("Visibility", WeatherFormatters.visibility(current.visibilityMiles))
+                (
+                    "Visibility",
+                    WeatherFormatters.visibility(
+                        current.visibilityMiles,
+                        unitSystem: store.unitSystem
+                    )
+                )
             ]
 
         case .pressure:
             return [
-                ("Pressure", WeatherFormatters.pressure(current.pressureMillibars))
+                (
+                    "Pressure",
+                    WeatherFormatters.pressure(
+                        current.pressureMillibars,
+                        unitSystem: store.unitSystem
+                    )
+                )
             ]
         }
     }

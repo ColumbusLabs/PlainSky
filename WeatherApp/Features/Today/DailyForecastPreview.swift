@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct DailyForecastPreview: View {
+    @Environment(WeatherStore.self) private var store
+
     let items: [DailyForecastItem]
     var onSeeAll: (() -> Void)?
 
@@ -37,13 +39,23 @@ struct DailyForecastPreview: View {
 
                         Spacer()
 
-                        Text(WeatherFormatters.temperature(item.overnightLow))
-                            .font(.subheadline.monospacedDigit())
-                            .foregroundStyle(WeatherTheme.secondaryText)
+                        Text(
+                            WeatherFormatters.temperature(
+                                item.overnightLow,
+                                unitSystem: store.unitSystem
+                            )
+                        )
+                        .font(.subheadline.monospacedDigit())
+                        .foregroundStyle(WeatherTheme.secondaryText)
 
-                        Text(WeatherFormatters.temperature(item.daytimeHigh))
-                            .font(.headline.monospacedDigit())
-                            .foregroundStyle(WeatherTheme.primaryText)
+                        Text(
+                            WeatherFormatters.temperature(
+                                item.daytimeHigh,
+                                unitSystem: store.unitSystem
+                            )
+                        )
+                        .font(.headline.monospacedDigit())
+                        .foregroundStyle(WeatherTheme.primaryText)
                     }
                     .padding(.vertical, 13)
 

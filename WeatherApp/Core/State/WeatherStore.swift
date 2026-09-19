@@ -15,6 +15,12 @@ final class WeatherStore {
         }
     }
 
+    var unitSystem: WeatherUnitSystem {
+        didSet {
+            preferences.saveUnitSystem(unitSystem)
+        }
+    }
+
     private let repository: any WeatherRepository
     private let preferences: WeatherPreferences
     private var loadGeneration = 0
@@ -28,6 +34,7 @@ final class WeatherStore {
         self.repository = repository ?? PreviewWeatherRepository()
         self.preferences = preferences
         self.appearance = preferences.loadAppearance() ?? .system
+        self.unitSystem = preferences.loadUnitSystem() ?? .us
         self.savedLocations = savedLocations
             ?? preferences.loadSavedLocations()
             ?? MockWeather.savedLocations

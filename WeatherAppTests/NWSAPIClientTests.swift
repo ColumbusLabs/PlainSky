@@ -46,7 +46,7 @@ final class NWSAPIClientTests: XCTestCase {
         )
     }
 
-    func testForecastRequestExplicitlyRequestsUSUnits() async throws {
+    func testForecastRequestUsesSelectedUnitSystem() async throws {
         let http = CapturingHTTPClient(
             data: Data(
                 """
@@ -65,14 +65,14 @@ final class NWSAPIClientTests: XCTestCase {
             URL(string: "https://api.weather.gov/gridpoints/IND/42,55/forecast")
         )
 
-        _ = try await client.forecast(url: url)
+        _ = try await client.forecast(url: url, unitSystem: .metric)
 
         let components = try XCTUnwrap(
             URLComponents(url: try XCTUnwrap(http.lastRequest?.url), resolvingAgainstBaseURL: false)
         )
         XCTAssertEqual(
             components.queryItems?.first(where: { $0.name == "units" })?.value,
-            "us"
+            "si"
         )
     }
 }
