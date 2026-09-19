@@ -6,11 +6,7 @@ struct RootTabView: View {
     var body: some View {
         TabView(selection: $selection) {
             NavigationStack {
-                PlaceholderScreen(
-                    icon: "sun.max.fill",
-                    title: "Today",
-                    subtitle: "Your weather at a glance."
-                )
+                TodayView()
             }
             .tag(AppTab.today)
             .tabItem {
@@ -54,6 +50,8 @@ struct RootTabView: View {
             }
         }
         .tint(WeatherTheme.accent)
+        .toolbarBackground(.ultraThinMaterial, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
     }
 }
 

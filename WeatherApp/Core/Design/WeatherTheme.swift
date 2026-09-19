@@ -5,7 +5,7 @@ enum WeatherTheme {
     static let primaryText = Color.white
     static let secondaryText = Color.white.opacity(0.70)
     static let tertiaryText = Color.white.opacity(0.48)
-    static let cardFill = Color.white.opacity(0.095)
+    static let cardFill = Color.white.opacity(0.06)
     static let cardStroke = Color.white.opacity(0.12)
     static let divider = Color.white.opacity(0.10)
 
@@ -20,7 +20,11 @@ enum WeatherTheme {
 }
 
 struct WeatherCard<Content: View>: View {
-    @ViewBuilder var content: Content
+    private let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
 
     var body: some View {
         content
@@ -28,7 +32,11 @@ struct WeatherCard<Content: View>: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background {
                 RoundedRectangle(cornerRadius: WeatherTheme.cardRadius, style: .continuous)
-                    .fill(.ultraThinMaterial.opacity(0.72))
+                    .fill(.ultraThinMaterial)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: WeatherTheme.cardRadius, style: .continuous)
+                            .fill(WeatherTheme.cardFill)
+                    }
                     .overlay {
                         RoundedRectangle(cornerRadius: WeatherTheme.cardRadius, style: .continuous)
                             .stroke(WeatherTheme.cardStroke, lineWidth: 1)
