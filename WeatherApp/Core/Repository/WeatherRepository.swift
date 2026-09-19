@@ -28,11 +28,8 @@ final class LiveWeatherRepository: WeatherRepository {
     }
 
     func load(location: WeatherLocation) async throws -> WeatherSnapshot {
-        async let primaryPayload = primary.weather(for: location)
-        async let supplementalPayload = supplemental.weather(for: location)
-
-        let primaryResult = try await primaryPayload
-        let supplementalResult = try? await supplementalPayload
+        let primaryResult = try await primary.weather(for: location)
+        let supplementalResult = try? await supplemental.weather(for: location)
 
         guard let current = primaryResult.current ?? supplementalResult?.currentFallback else {
             throw ProviderError.missingRequiredData(

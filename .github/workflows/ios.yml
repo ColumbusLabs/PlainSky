@@ -19,7 +19,7 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
-      - name: Build
+      - name: Build app
         run: |
           xcodebuild \
             -project WeatherApp.xcodeproj \
@@ -29,3 +29,14 @@ jobs:
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO \
             build
+
+      - name: Compile tests
+        run: |
+          xcodebuild \
+            -project WeatherApp.xcodeproj \
+            -scheme WeatherApp \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build-for-testing

@@ -32,4 +32,18 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         CODE_SIGN_STYLE: Automatic
     scheme:
-      gatherCoverageData: false
+      gatherCoverageData: true
+      testTargets:
+        - WeatherAppTests
+
+  WeatherAppTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: WeatherAppTests
+    dependencies:
+      - target: WeatherApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.columbuslabs.weatherapp.tests
+        GENERATE_INFOPLIST_FILE: YES
