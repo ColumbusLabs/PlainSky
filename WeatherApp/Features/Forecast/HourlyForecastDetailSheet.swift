@@ -39,6 +39,14 @@ struct HourlyForecastDetailSheet: View {
                                 )
                                 divider
                                 detailRow(
+                                    "Dew point",
+                                    WeatherFormatters.temperature(
+                                        item.dewPoint,
+                                        unitSystem: store.unitSystem
+                                    )
+                                )
+                                divider
+                                detailRow(
                                     "Wind",
                                     WeatherFormatters.wind(
                                         speed: item.windSpeed,

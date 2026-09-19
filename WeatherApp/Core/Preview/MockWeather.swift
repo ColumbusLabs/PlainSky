@@ -60,6 +60,7 @@ enum MockWeather {
                 condition: index < 5 ? .partlyCloudy : (index < 14 ? .mostlyClear : .clear),
                 precipitationChance: Double(rainChances[index]) / 100,
                 humidity: 0.56 + Double(min(index, 10)) * 0.02,
+                dewPoint: 58 + Double(index % 4),
                 windSpeed: 7 + Double(index % 4),
                 windGust: 13 + Double(index % 5),
                 source: forecastSource

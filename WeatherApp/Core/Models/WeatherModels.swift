@@ -107,6 +107,7 @@ struct HourlyForecastItem: Identifiable, Hashable, Sendable {
     var condition: WeatherCondition
     var precipitationChance: Double?
     var humidity: Double?
+    var dewPoint: Double?
     var windSpeed: Double?
     var windGust: Double?
     var source: WeatherSourceMetadata
@@ -119,6 +120,7 @@ struct HourlyForecastItem: Identifiable, Hashable, Sendable {
         condition: WeatherCondition,
         precipitationChance: Double? = nil,
         humidity: Double? = nil,
+        dewPoint: Double? = nil,
         windSpeed: Double? = nil,
         windGust: Double? = nil,
         source: WeatherSourceMetadata
@@ -130,6 +132,7 @@ struct HourlyForecastItem: Identifiable, Hashable, Sendable {
         self.condition = condition
         self.precipitationChance = precipitationChance
         self.humidity = humidity
+        self.dewPoint = dewPoint
         self.windSpeed = windSpeed
         self.windGust = windGust
         self.source = source

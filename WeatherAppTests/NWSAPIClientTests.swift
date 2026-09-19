@@ -74,6 +74,10 @@ final class NWSAPIClientTests: XCTestCase {
             components.queryItems?.first(where: { $0.name == "units" })?.value,
             "us"
         )
+        XCTAssertEqual(
+            http.lastRequest?.value(forHTTPHeaderField: "Feature-Flags"),
+            "forecast_temperature_qv,forecast_wind_speed_qv"
+        )
     }
 }
 

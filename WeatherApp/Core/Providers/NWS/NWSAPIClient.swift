@@ -18,15 +18,25 @@ struct NWSAPIClient {
     func forecast(url: URL) async throws -> NWSForecastResponse {
         try await fetch(
             url: url,
-            queryItems: [URLQueryItem(name: "units", value: "us")]
+            queryItems: [URLQueryItem(name: "units", value: "us")],
+            headers: [
+                "Feature-Flags": "forecast_temperature_qv,forecast_wind_speed_qv"
+            ]
         )
     }
 
     func hourlyForecast(url: URL) async throws -> NWSForecastResponse {
         try await fetch(
             url: url,
-            queryItems: [URLQueryItem(name: "units", value: "us")]
+            queryItems: [URLQueryItem(name: "units", value: "us")],
+            headers: [
+                "Feature-Flags": "forecast_temperature_qv,forecast_wind_speed_qv"
+            ]
         )
+    }
+
+    func gridData(url: URL) async throws -> NWSGridpointResponse {
+        try await fetch(url: url)
     }
 
     func stations(url: URL) async throws -> NWSFeatureCollection<NWSStationProperties> {
@@ -36,7 +46,11 @@ struct NWSAPIClient {
     func latestObservation(stationIdentifier: String) async throws -> NWSObservationResponse {
         let encoded = stationIdentifier.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
             ?? stationIdentifier
-        return try await fetch(url: try makeURL(path: "/stations/\(encoded)/observations/latest"))
+
+        return try await fetch(
+            url: try makeURL(path: "/stations/\(encoded)/observations/latest"),
+            queryItems: [URLQueryItem(name: "require_qc", value: "true")]
+        )
     }
 
     func activeAlerts(for location: WeatherLocation) async throws -> NWSAlertCollection {
@@ -53,9 +67,14 @@ struct NWSAPIClient {
 
     private func fetch<Response: Decodable>(
         url: URL,
-        queryItems: [URLQueryItem] = []
+        queryItems: [URLQueryItem] = [],
+        headers: [String: String] = [:]
     ) async throws -> Response {
-        let request = try makeRequest(url: url, queryItems: queryItems)
+        let request = try makeRequest(
+            url: url,
+            queryItems: queryItems,
+            headers: headers
+        )
         let (data, _) = try await httpClient.data(for: request)
 
         do {
@@ -72,7 +91,11 @@ struct NWSAPIClient {
         return url
     }
 
-    private func makeRequest(url: URL, queryItems: [URLQueryItem]) throws -> URLRequest {
+    private func makeRequest(
+        url: URL,
+        queryItems: [URLQueryItem],
+        headers: [String: String]
+    ) throws -> URLRequest {
         guard var components = URLComponents(url: url, resolvingAgainstBaseURL: true) else {
             throw ProviderError.invalidURL
         }
@@ -93,6 +116,11 @@ struct NWSAPIClient {
             forHTTPHeaderField: "User-Agent"
         )
         request.setValue("application/geo+json", forHTTPHeaderField: "Accept")
+
+        for (field, value) in headers {
+            request.setValue(value, forHTTPHeaderField: field)
+        }
+
         return request
     }
 }
