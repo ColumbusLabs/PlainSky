@@ -54,6 +54,15 @@ final class WeatherStore {
         }
     }
 
+    func refreshIfNeeded(maxAge: TimeInterval = 10 * 60) async {
+        guard !isRefreshing else { return }
+
+        let age = Date().timeIntervalSince(snapshot.fetchedAt)
+        guard age >= maxAge else { return }
+
+        await refresh()
+    }
+
     func refresh() async {
         loadGeneration += 1
         let generation = loadGeneration
