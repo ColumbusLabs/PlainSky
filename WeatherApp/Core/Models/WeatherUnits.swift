@@ -40,11 +40,4 @@ enum WeatherUnitSystem: String, CaseIterable, Identifiable, Codable, Sendable {
         case .metric: "hPa"
         }
     }
-
-    var nwsQueryValue: String {
-        switch self {
-        case .us: "us"
-        case .metric: "si"
-        }
-    }
 }
