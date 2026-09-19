@@ -29,13 +29,25 @@ struct TodayView: View {
                         today: store.snapshot.daily.first
                     )
 
-                    ForEach(store.snapshot.alerts) { alert in
+                    ForEach(store.snapshot.alerts.prefix(2)) { alert in
                         NavigationLink {
-                            AlertDetailPlaceholder(alert: alert)
+                            AlertDetailView(alert: alert)
                         } label: {
                             AlertBanner(alert: alert)
                         }
                         .buttonStyle(.plain)
+                    }
+
+                    if store.snapshot.alerts.count > 2 {
+                        NavigationLink {
+                            AlertsView()
+                        } label: {
+                            Text("View all \(store.snapshot.alerts.count) active alerts")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(WeatherTheme.accent)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 4)
+                        }
                     }
 
                     if !store.snapshot.minutePrecipitation.isEmpty {
@@ -106,7 +118,8 @@ private struct TodayLocationHeader: View {
 
             Spacer()
 
-            Button {
+            NavigationLink {
+                AlertsView()
             } label: {
                 ZStack(alignment: .topTrailing) {
                     Image(systemName: "bell")
@@ -123,47 +136,12 @@ private struct TodayLocationHeader: View {
                     }
                 }
             }
-            .accessibilityLabel("Weather alerts")
+            .accessibilityLabel(
+                store.snapshot.alerts.isEmpty
+                    ? "Weather alerts"
+                    : "\(store.snapshot.alerts.count) active weather alerts"
+            )
         }
         .padding(.top, 4)
-    }
-}
-
-private struct AlertDetailPlaceholder: View {
-    let alert: WeatherAlert
-
-    var body: some View {
-        ZStack {
-            WeatherBackdrop(style: .rain)
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    Text(alert.event)
-                        .font(.largeTitle.bold())
-
-                    Text(alert.headline)
-                        .font(.headline)
-                        .foregroundStyle(WeatherTheme.secondaryText)
-
-                    Text(alert.description)
-                        .font(.body)
-
-                    if let instructions = alert.instructions {
-                        Text("Instructions")
-                            .font(.headline)
-                            .padding(.top, 8)
-
-                        Text(instructions)
-                    }
-
-                    SourceFreshnessView(metadata: alert.source)
-                        .padding(.top, 8)
-                }
-                .foregroundStyle(WeatherTheme.primaryText)
-                .padding(WeatherTheme.horizontalPadding)
-            }
-        }
-        .navigationTitle("Alert")
-        .navigationBarTitleDisplayMode(.inline)
     }
 }
