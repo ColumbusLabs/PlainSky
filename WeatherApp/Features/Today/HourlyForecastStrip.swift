@@ -20,10 +20,10 @@ struct HourlyForecastStrip: View {
                     LazyHStack(spacing: 0) {
                         ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                             VStack(spacing: 10) {
-                                Text(index == 0 ? "Now" : WeatherFormatters.hour(item.date))
-                                    .font(.caption.weight(index == 0 ? .semibold : .regular))
+                                Text(WeatherFormatters.hour(item.date))
+                                    .font(.caption)
                                     .foregroundStyle(
-                                        index == 0 ? WeatherTheme.primaryText : WeatherTheme.secondaryText
+                                        WeatherTheme.secondaryText
                                     )
 
                                 Image(systemName: item.condition.symbolName)
@@ -50,7 +50,7 @@ struct HourlyForecastStrip: View {
                             .frame(width: max(67, cellWidth))
                             .accessibilityElement(children: .combine)
                             .accessibilityLabel(
-                                "\(index == 0 ? "Now" : WeatherFormatters.hour(item.date)), " +
+                                "\(WeatherFormatters.hour(item.date)), " +
                                 "\(WeatherFormatters.temperature(item.temperature, unitSystem: store.unitSystem)), " +
                                 "precipitation \(WeatherFormatters.percent(item.precipitationChance))"
                             )

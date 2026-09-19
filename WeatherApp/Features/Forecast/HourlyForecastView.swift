@@ -163,8 +163,8 @@ struct HourlyDetailRows: View {
         showsChevron: Bool
     ) -> some View {
         HStack(spacing: 12) {
-            Text(index == 0 ? "Now" : WeatherFormatters.hour(item.date))
-                .font(.subheadline.weight(index == 0 ? .semibold : .regular))
+            Text(WeatherFormatters.hour(item.date))
+                .font(.subheadline)
                 .foregroundStyle(WeatherTheme.primaryText)
                 .frame(width: 62, alignment: .leading)
 
