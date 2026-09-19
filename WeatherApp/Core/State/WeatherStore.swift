@@ -29,18 +29,20 @@ final class WeatherStore {
         repository: (any WeatherRepository)? = nil,
         snapshot: WeatherSnapshot = MockWeather.snapshot,
         savedLocations: [WeatherLocation]? = nil,
-        preferences: WeatherPreferences = .live
+        preferences: WeatherPreferences? = nil
     ) {
+        let resolvedPreferences = preferences ?? .live
+
         self.repository = repository ?? PreviewWeatherRepository()
-        self.preferences = preferences
-        self.appearance = preferences.loadAppearance() ?? .system
-        self.unitSystem = preferences.loadUnitSystem() ?? .us
+        self.preferences = resolvedPreferences
+        self.appearance = resolvedPreferences.loadAppearance() ?? .system
+        self.unitSystem = resolvedPreferences.loadUnitSystem() ?? .us
         self.savedLocations = savedLocations
-            ?? preferences.loadSavedLocations()
+            ?? resolvedPreferences.loadSavedLocations()
             ?? MockWeather.savedLocations
 
         var initialSnapshot = snapshot
-        if let lastLocation = preferences.loadLastLocation() {
+        if let lastLocation = resolvedPreferences.loadLastLocation() {
             initialSnapshot.location = lastLocation
         }
         self.snapshot = initialSnapshot

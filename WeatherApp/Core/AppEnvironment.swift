@@ -25,7 +25,7 @@ enum AppEnvironment {
     static func makeWeatherStore() -> WeatherStore {
         switch dataMode {
         case .preview:
-            WeatherStore(repository: PreviewWeatherRepository())
+            return WeatherStore(repository: PreviewWeatherRepository())
 
         case .liveNWS:
             var initialSnapshot = MockWeather.snapshot
