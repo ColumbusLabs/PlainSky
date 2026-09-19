@@ -30,7 +30,7 @@ struct LocationSearchView: View {
                     Button {
                         Task {
                             if let location = await searchModel.resolve(result) {
-                                store.addLocation(location)
+                                store.addLocationAndRefresh(location)
                                 onSelection?(location)
                                 dismiss()
                             }

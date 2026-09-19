@@ -93,13 +93,12 @@ struct OnboardingView: View {
         }
         .onChange(of: locationService.currentLocation) { _, newLocation in
             guard let newLocation else { return }
-            store.setCurrentLocation(newLocation)
+            store.setCurrentLocationAndRefresh(newLocation)
             hasCompletedOnboarding = true
         }
         .sheet(isPresented: $showingSearch) {
             NavigationStack {
-                LocationSearchView { location in
-                    store.select(location)
+                LocationSearchView { _ in
                     hasCompletedOnboarding = true
                 }
             }

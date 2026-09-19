@@ -88,6 +88,11 @@ struct PlacesView: View {
             }
 
             Spacer()
+
+            if store.isRefreshing {
+                ProgressView()
+                    .tint(WeatherTheme.primaryText)
+            }
         }
     }
 
@@ -99,7 +104,7 @@ struct PlacesView: View {
 
                 ForEach(Array(store.savedLocations.enumerated()), id: \.element.id) { index, location in
                     Button {
-                        store.select(location)
+                        store.selectAndRefresh(location)
                     } label: {
                         PlaceRow(
                             location: location,

@@ -88,7 +88,7 @@ private struct TodayLocationHeader: View {
             Menu {
                 ForEach(store.savedLocations) { location in
                     Button {
-                        store.select(location)
+                        store.selectAndRefresh(location)
                     } label: {
                         Label(
                             location.displayName,
@@ -118,29 +118,36 @@ private struct TodayLocationHeader: View {
 
             Spacer()
 
-            NavigationLink {
-                AlertsView()
-            } label: {
-                ZStack(alignment: .topTrailing) {
-                    Image(systemName: "bell")
-                        .font(.system(size: 17, weight: .semibold))
-                        .frame(width: 40, height: 40)
-                        .background(.ultraThinMaterial, in: Circle())
-                        .foregroundStyle(WeatherTheme.primaryText)
+            if store.isRefreshing {
+                ProgressView()
+                    .tint(WeatherTheme.primaryText)
+                    .frame(width: 40, height: 40)
+                    .accessibilityLabel("Refreshing weather")
+            } else {
+                NavigationLink {
+                    AlertsView()
+                } label: {
+                    ZStack(alignment: .topTrailing) {
+                        Image(systemName: "bell")
+                            .font(.system(size: 17, weight: .semibold))
+                            .frame(width: 40, height: 40)
+                            .background(.ultraThinMaterial, in: Circle())
+                            .foregroundStyle(WeatherTheme.primaryText)
 
-                    if !store.snapshot.alerts.isEmpty {
-                        Circle()
-                            .fill(.red)
-                            .frame(width: 9, height: 9)
-                            .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
+                        if !store.snapshot.alerts.isEmpty {
+                            Circle()
+                                .fill(.red)
+                                .frame(width: 9, height: 9)
+                                .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
+                        }
                     }
                 }
+                .accessibilityLabel(
+                    store.snapshot.alerts.isEmpty
+                        ? "Weather alerts"
+                        : "\(store.snapshot.alerts.count) active weather alerts"
+                )
             }
-            .accessibilityLabel(
-                store.snapshot.alerts.isEmpty
-                    ? "Weather alerts"
-                    : "\(store.snapshot.alerts.count) active weather alerts"
-            )
         }
         .padding(.top, 4)
     }

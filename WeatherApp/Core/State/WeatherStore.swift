@@ -17,6 +17,7 @@ final class WeatherStore {
 
     private let repository: any WeatherRepository
     private let preferences: WeatherPreferences
+    private var loadGeneration = 0
 
     init(
         repository: (any WeatherRepository)? = nil,
@@ -47,22 +48,43 @@ final class WeatherStore {
     }
 
     func refresh() async {
-        guard !isRefreshing else { return }
+        loadGeneration += 1
+        let generation = loadGeneration
+        let requestedLocation = snapshot.location
 
         isRefreshing = true
         lastRefreshError = nil
-        defer { isRefreshing = false }
 
         do {
-            snapshot = try await repository.load(location: snapshot.location)
+            let loadedSnapshot = try await repository.load(location: requestedLocation)
+
+            guard generation == loadGeneration,
+                  snapshot.location.id == requestedLocation.id else {
+                return
+            }
+
+            snapshot = loadedSnapshot
         } catch {
+            guard generation == loadGeneration else { return }
             lastRefreshError = error.localizedDescription
+        }
+
+        if generation == loadGeneration {
+            isRefreshing = false
         }
     }
 
     func select(_ location: WeatherLocation) {
+        invalidateOutstandingLoad()
         snapshot.location = location
         preferences.saveLastLocation(location)
+    }
+
+    func selectAndRefresh(_ location: WeatherLocation) {
+        select(location)
+        Task {
+            await refresh()
+        }
     }
 
     func setCurrentLocation(_ location: WeatherLocation) {
@@ -79,6 +101,13 @@ final class WeatherStore {
         select(location)
     }
 
+    func setCurrentLocationAndRefresh(_ location: WeatherLocation) {
+        setCurrentLocation(location)
+        Task {
+            await refresh()
+        }
+    }
+
     func addLocation(_ location: WeatherLocation) {
         if let existing = savedLocations.first(where: {
             abs($0.latitude - location.latitude) < 0.001 &&
@@ -93,6 +122,13 @@ final class WeatherStore {
         select(location)
     }
 
+    func addLocationAndRefresh(_ location: WeatherLocation) {
+        addLocation(location)
+        Task {
+            await refresh()
+        }
+    }
+
     func removeLocation(_ location: WeatherLocation) {
         guard !location.isCurrentLocation else { return }
         savedLocations.removeAll { $0.id == location.id }
@@ -101,6 +137,11 @@ final class WeatherStore {
 
     func clearRefreshError() {
         lastRefreshError = nil
+    }
+
+    private func invalidateOutstandingLoad() {
+        loadGeneration += 1
+        isRefreshing = false
     }
 
     private func persistLocations() {
