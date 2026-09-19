@@ -21,6 +21,7 @@ struct RadarMapView: View {
             MapCompass()
             MapScaleView()
         }
-        .ignoresSafeArea()
+        .background(Color.black.opacity(0.04))
+        .clipShape(Rectangle())
     }
 }

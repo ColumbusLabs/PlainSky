@@ -110,7 +110,7 @@ jobs:
         run: |
           UDID="${{ steps.simulator.outputs.udid }}"
           xcrun simctl launch --terminate-running-process "$UDID" com.columbuslabs.weatherapp --skip-onboarding --weather-tab=radar
-          sleep 2
+          sleep 8
           xcrun simctl io "$UDID" screenshot visual-smoke/radar-dark.png
 
       - name: Capture Places dark

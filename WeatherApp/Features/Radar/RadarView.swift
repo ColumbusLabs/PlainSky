@@ -8,10 +8,14 @@ struct RadarView: View {
 
     var body: some View {
         ZStack {
+            WeatherBackdrop(style: .night)
+                .zIndex(0)
+
             RadarMapView(
                 location: store.snapshot.location,
                 cameraPosition: $cameraPosition
             )
+            .zIndex(1)
 
             VStack(spacing: 12) {
                 RadarHeader(
@@ -34,6 +38,7 @@ struct RadarView: View {
             .padding(.horizontal, 16)
             .padding(.top, 8)
             .padding(.bottom, 12)
+            .zIndex(2)
         }
         .toolbar(.hidden, for: .navigationBar)
         .task(id: store.snapshot.location.id) {
