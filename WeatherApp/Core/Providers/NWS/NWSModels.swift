@@ -89,6 +89,7 @@ struct NWSGridpointProperties: Decodable {
     let updateTime: String?
     let validTimes: String?
     let apparentTemperature: NWSGridValueSeries?
+    let windSpeed: NWSGridValueSeries?
     let windGust: NWSGridValueSeries?
     let relativeHumidity: NWSGridValueSeries?
     let dewpoint: NWSGridValueSeries?
