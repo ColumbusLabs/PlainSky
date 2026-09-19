@@ -85,35 +85,48 @@ jobs:
           UDID="${{ steps.simulator.outputs.udid }}"
           xcrun simctl boot "$UDID" || true
           xcrun simctl bootstatus "$UDID" -b
-
-      - name: Capture visual smoke screenshots
-        run: |
-          set -euo pipefail
-          UDID="${{ steps.simulator.outputs.udid }}"
-          APP_PATH="DerivedData/Build/Products/Debug-iphonesimulator/WeatherApp.app"
           mkdir -p visual-smoke
-          xcrun simctl install "$UDID" "$APP_PATH"
-          xcrun simctl spawn "$UDID" defaults write com.columbuslabs.weatherapp hasCompletedWeatherOnboarding -bool YES
+          xcrun simctl install "$UDID" DerivedData/Build/Products/Debug-iphonesimulator/WeatherApp.app
 
+      - name: Capture Today dark
+        timeout-minutes: 2
+        run: |
+          UDID="${{ steps.simulator.outputs.udid }}"
           xcrun simctl ui "$UDID" appearance dark
-          xcrun simctl launch --terminate-running-process "$UDID" com.columbuslabs.weatherapp
+          xcrun simctl launch --terminate-running-process "$UDID" com.columbuslabs.weatherapp --skip-onboarding
           sleep 2
           xcrun simctl io "$UDID" screenshot visual-smoke/today-dark.png
 
-          xcrun simctl launch --terminate-running-process "$UDID" com.columbuslabs.weatherapp --weather-tab=forecast
+      - name: Capture Forecast dark
+        timeout-minutes: 2
+        run: |
+          UDID="${{ steps.simulator.outputs.udid }}"
+          xcrun simctl launch --terminate-running-process "$UDID" com.columbuslabs.weatherapp --skip-onboarding --weather-tab=forecast
           sleep 2
           xcrun simctl io "$UDID" screenshot visual-smoke/forecast-dark.png
 
-          xcrun simctl launch --terminate-running-process "$UDID" com.columbuslabs.weatherapp --weather-tab=radar
+      - name: Capture Radar dark
+        timeout-minutes: 2
+        run: |
+          UDID="${{ steps.simulator.outputs.udid }}"
+          xcrun simctl launch --terminate-running-process "$UDID" com.columbuslabs.weatherapp --skip-onboarding --weather-tab=radar
           sleep 2
           xcrun simctl io "$UDID" screenshot visual-smoke/radar-dark.png
 
-          xcrun simctl launch --terminate-running-process "$UDID" com.columbuslabs.weatherapp --weather-tab=places
+      - name: Capture Places dark
+        timeout-minutes: 2
+        run: |
+          UDID="${{ steps.simulator.outputs.udid }}"
+          xcrun simctl launch --terminate-running-process "$UDID" com.columbuslabs.weatherapp --skip-onboarding --weather-tab=places
           sleep 2
           xcrun simctl io "$UDID" screenshot visual-smoke/places-dark.png
 
+      - name: Capture Today light
+        timeout-minutes: 2
+        run: |
+          UDID="${{ steps.simulator.outputs.udid }}"
           xcrun simctl ui "$UDID" appearance light
-          xcrun simctl launch --terminate-running-process "$UDID" com.columbuslabs.weatherapp
+          xcrun simctl launch --terminate-running-process "$UDID" com.columbuslabs.weatherapp --skip-onboarding
           sleep 2
           xcrun simctl io "$UDID" screenshot visual-smoke/today-light.png
 
