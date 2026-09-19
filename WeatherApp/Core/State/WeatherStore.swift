@@ -8,11 +8,16 @@ final class WeatherStore {
     var savedLocations: [WeatherLocation]
     var isRefreshing = false
     var appearance: AppAppearance = .system
+    var lastRefreshError: String?
+
+    private let repository: any WeatherRepository
 
     init(
+        repository: any WeatherRepository = PreviewWeatherRepository(),
         snapshot: WeatherSnapshot = MockWeather.snapshot,
         savedLocations: [WeatherLocation] = MockWeather.savedLocations
     ) {
+        self.repository = repository
         self.snapshot = snapshot
         self.savedLocations = savedLocations
     }
@@ -29,18 +34,14 @@ final class WeatherStore {
         guard !isRefreshing else { return }
 
         isRefreshing = true
+        lastRefreshError = nil
         defer { isRefreshing = false }
 
-        await Task.yield()
-
-        let fresh = MockWeather.snapshot
-        snapshot.current = fresh.current
-        snapshot.hourly = fresh.hourly
-        snapshot.daily = fresh.daily
-        snapshot.minutePrecipitation = fresh.minutePrecipitation
-        snapshot.alerts = fresh.alerts
-        snapshot.solar = fresh.solar
-        snapshot.fetchedAt = fresh.fetchedAt
+        do {
+            snapshot = try await repository.load(location: snapshot.location)
+        } catch {
+            lastRefreshError = error.localizedDescription
+        }
     }
 
     func select(_ location: WeatherLocation) {
