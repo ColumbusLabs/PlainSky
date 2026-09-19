@@ -19,12 +19,12 @@ final class WeatherStore {
     private let preferences: WeatherPreferences
 
     init(
-        repository: any WeatherRepository = PreviewWeatherRepository(),
+        repository: (any WeatherRepository)? = nil,
         snapshot: WeatherSnapshot = MockWeather.snapshot,
         savedLocations: [WeatherLocation]? = nil,
         preferences: WeatherPreferences = .live
     ) {
-        self.repository = repository
+        self.repository = repository ?? PreviewWeatherRepository()
         self.preferences = preferences
         self.appearance = preferences.loadAppearance() ?? .system
         self.savedLocations = savedLocations

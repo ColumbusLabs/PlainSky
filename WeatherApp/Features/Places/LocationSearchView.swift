@@ -74,7 +74,7 @@ struct LocationSearchResult: Identifiable, Hashable {
 
 @MainActor
 @Observable
-final class LocationSearchModel: NSObject, MKLocalSearchCompleterDelegate {
+final class LocationSearchModel: NSObject, @preconcurrency MKLocalSearchCompleterDelegate {
     var query = "" {
         didSet {
             isSearching = !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

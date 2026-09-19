@@ -3,7 +3,7 @@ import Observation
 
 @MainActor
 @Observable
-final class LocationService: NSObject, CLLocationManagerDelegate {
+final class LocationService: NSObject, @preconcurrency CLLocationManagerDelegate {
     var currentLocation: WeatherLocation?
     var authorizationStatus: CLAuthorizationStatus
     var isResolving = false
