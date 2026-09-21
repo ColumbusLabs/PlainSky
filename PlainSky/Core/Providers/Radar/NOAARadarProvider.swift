@@ -35,7 +35,7 @@ struct NOAARadarProvider: RadarProviding {
         request.httpMethod = "GET"
         request.timeoutInterval = 20
         request.setValue(
-            "TheWeatherApp/0.1 (https://github.com/ColumbusLabs/The-Weather-App)",
+            "PlainSky/0.1 (https://github.com/ColumbusLabs/PlainSky)",
             forHTTPHeaderField: "User-Agent"
         )
 

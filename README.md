@@ -1,4 +1,4 @@
-# The Weather App
+# PlainSky
 
 A clean, ad-free native iOS weather app built with SwiftUI.
 
@@ -33,7 +33,7 @@ The app does not average providers or invent meteorology.
 ```bash
 brew install xcodegen
 xcodegen generate
-open WeatherApp.xcodeproj
+open PlainSky.xcodeproj
 ```
 
 iOS 17+.

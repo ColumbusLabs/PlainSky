@@ -1,4 +1,4 @@
-name: WeatherApp
+name: PlainSky
 
 options:
   bundleIdPrefix: com.columbuslabs
@@ -13,21 +13,21 @@ settings:
     MARKETING_VERSION: 0.1.0
 
 targets:
-  WeatherApp:
+  PlainSky:
     type: application
     platform: iOS
     sources:
-      - path: WeatherApp
+      - path: PlainSky
         excludes:
           - Info.plist
           - Resources
     resources:
-      - path: WeatherApp/Resources
+      - path: PlainSky/Resources
     info:
-      path: WeatherApp/Info.plist
+      path: PlainSky/Info.plist
       properties:
-        CFBundleDisplayName: Weather
-        CFBundleName: Weather
+        CFBundleDisplayName: PlainSky
+        CFBundleName: PlainSky
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSRequiresIPhoneOS: true
@@ -39,24 +39,24 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.columbuslabs.weatherapp
-        PRODUCT_NAME: WeatherApp
+        PRODUCT_NAME: PlainSky
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         CODE_SIGN_STYLE: Automatic
-        CODE_SIGN_ENTITLEMENTS: WeatherApp/WeatherApp.entitlements
+        CODE_SIGN_ENTITLEMENTS: PlainSky/PlainSky.entitlements
         TARGETED_DEVICE_FAMILY: "1"
     scheme:
       gatherCoverageData: true
       testTargets:
-        - WeatherAppTests
+        - PlainSkyTests
 
-  WeatherAppTests:
+  PlainSkyTests:
     type: bundle.unit-test
     platform: iOS
     sources:
-      - path: WeatherAppTests
+      - path: PlainSkyTests
     dependencies:
-      - target: WeatherApp
+      - target: PlainSky
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.columbuslabs.weatherapp.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.columbuslabs.plainsky.tests
         GENERATE_INFOPLIST_FILE: YES

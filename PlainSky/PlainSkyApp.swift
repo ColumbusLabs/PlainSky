@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 @main
-struct WeatherApp: App {
+struct PlainSkyApp: App {
     @State private var store = AppEnvironment.makeWeatherStore()
     @AppStorage("hasCompletedWeatherOnboarding") private var hasCompletedOnboarding = false
 

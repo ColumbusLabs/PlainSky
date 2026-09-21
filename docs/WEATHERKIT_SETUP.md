@@ -13,7 +13,7 @@ For the App ID used by this project (`com.columbuslabs.weatherapp`):
 5. Allow Apple/Xcode a few minutes to refresh provisioning if needed.
 6. In Xcode, select the app target and confirm the WeatherKit capability is present under **Signing & Capabilities**.
 
-The repo already contains `WeatherApp/WeatherApp.entitlements` with:
+The repo already contains `PlainSky/PlainSky.entitlements` with:
 
 ```xml
 <key>com.apple.developer.weatherkit</key>

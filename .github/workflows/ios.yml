@@ -26,8 +26,8 @@ jobs:
       - name: Build app
         run: |
           xcodebuild \
-            -project WeatherApp.xcodeproj \
-            -scheme WeatherApp \
+            -project PlainSky.xcodeproj \
+            -scheme PlainSky \
             -configuration Debug \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
@@ -76,8 +76,8 @@ jobs:
       - name: Run unit tests
         run: |
           xcodebuild \
-            -project WeatherApp.xcodeproj \
-            -scheme WeatherApp \
+            -project PlainSky.xcodeproj \
+            -scheme PlainSky \
             -configuration Debug \
             -destination "id=${{ steps.simulator.outputs.udid }}" \
             -derivedDataPath DerivedDataTests \
@@ -89,7 +89,7 @@ jobs:
           xcrun simctl boot "$UDID" || true
           xcrun simctl bootstatus "$UDID" -b
           mkdir -p visual-smoke
-          xcrun simctl install "$UDID" DerivedData/Build/Products/Debug-iphonesimulator/WeatherApp.app
+          xcrun simctl install "$UDID" DerivedData/Build/Products/Debug-iphonesimulator/PlainSky.app
 
       - name: Capture Today dark
         timeout-minutes: 2

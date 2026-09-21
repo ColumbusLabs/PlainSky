@@ -1,5 +1,5 @@
 import XCTest
-@testable import WeatherApp
+@testable import PlainSky
 
 final class WeatherSourcePolicyTests: XCTestCase {
     func testFixedProviderAssignments() {

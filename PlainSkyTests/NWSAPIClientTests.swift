@@ -1,5 +1,5 @@
 import XCTest
-@testable import WeatherApp
+@testable import PlainSky
 
 final class NWSAPIClientTests: XCTestCase {
     func testPointRequestUsesCoordinatesAndIdentifyingUserAgent() async throws {
@@ -42,7 +42,7 @@ final class NWSAPIClientTests: XCTestCase {
         XCTAssertTrue(
             http.lastRequest?
                 .value(forHTTPHeaderField: "User-Agent")?
-                .contains("ColumbusLabs/The-Weather-App") == true
+                .contains("ColumbusLabs/PlainSky") == true
         )
     }
 

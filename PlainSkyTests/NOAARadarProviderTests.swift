@@ -1,6 +1,6 @@
 import MapKit
 import XCTest
-@testable import WeatherApp
+@testable import PlainSky
 
 final class NOAARadarProviderTests: XCTestCase {
     func testCapabilitiesParserReadsExactAndIntervalTimes() throws {

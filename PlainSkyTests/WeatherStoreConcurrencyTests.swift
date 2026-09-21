@@ -1,5 +1,5 @@
 import XCTest
-@testable import WeatherApp
+@testable import PlainSky
 
 @MainActor
 final class WeatherStoreConcurrencyTests: XCTestCase {

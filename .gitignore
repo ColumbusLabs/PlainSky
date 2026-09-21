@@ -7,7 +7,7 @@ xcuserdata/
 *.xcscmblueprint
 
 # XcodeGen
-WeatherApp.xcodeproj/
+PlainSky.xcodeproj/
 
 # Swift Package Manager
 .build/
