@@ -24,13 +24,13 @@ and XcodeGen already points the target at that entitlement file.
 
 ## Testing after Apple-side activation
 
-WeatherKit supplements remain opt-in pending physical-device validation. After Apple-side activation, launch with:
+WeatherKit supplements are enabled for normal launches. To run with only NWS and NOAA/NCEP for diagnostics, launch with:
 
 ```
---live-weatherkit
+--live-nws
 ```
 
-That mode keeps NWS as the primary U.S. forecast/current source and enables WeatherKit for:
+Normal mode keeps NWS as the primary U.S. forecast/current source and uses WeatherKit only for:
 
 - next-hour precipitation
 - UV
@@ -41,4 +41,4 @@ Apple Weather attribution is already rendered wherever WeatherKit data is displa
 
 Use `--preview-data` for deterministic UI validation without live provider requests.
 
-The normal launch remains live NWS + NOAA until these WeatherKit products are verified on a physical device. Live launches can restore a matching cache for up to six hours, then render primary NWS data while the supplemental request is still loading.
+Live launches can restore a matching cache for up to six hours, then render primary NWS data while the WeatherKit supplemental request is still loading. NOAA/NCEP remains the radar source in both live modes.

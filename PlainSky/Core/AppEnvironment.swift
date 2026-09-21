@@ -31,11 +31,11 @@ enum AppEnvironment {
             return .preview
         }
 
-        if arguments.contains("--live-weatherkit") {
-            return .liveNWSWeatherKit
+        if arguments.contains("--live-nws") {
+            return .liveNWS
         }
 
-        return .liveNWS
+        return .liveNWSWeatherKit
     }
 
     @MainActor

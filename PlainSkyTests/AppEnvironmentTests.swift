@@ -2,20 +2,20 @@ import XCTest
 @testable import PlainSky
 
 final class AppEnvironmentTests: XCTestCase {
-    func testNormalLaunchUsesLiveNWSWithoutWeatherKitSupplements() {
-        XCTAssertEqual(AppEnvironment.dataMode(for: ["PlainSky"]), .liveNWS)
+    func testNormalLaunchUsesAssignedNWSNOAAAndWeatherKitSources() {
+        XCTAssertEqual(AppEnvironment.dataMode(for: ["PlainSky"]), .liveNWSWeatherKit)
     }
 
-    func testWeatherKitArgumentOptsIntoSupplements() {
+    func testLiveNWSArgumentDisablesWeatherKitForDiagnostics() {
         XCTAssertEqual(
-            AppEnvironment.dataMode(for: ["PlainSky", "--live-weatherkit"]),
-            .liveNWSWeatherKit
+            AppEnvironment.dataMode(for: ["PlainSky", "--live-nws"]),
+            .liveNWS
         )
     }
 
     func testPreviewArgumentTakesPriority() {
         XCTAssertEqual(
-            AppEnvironment.dataMode(for: ["PlainSky", "--live-weatherkit", "--preview-data"]),
+            AppEnvironment.dataMode(for: ["PlainSky", "--live-nws", "--preview-data"]),
             .preview
         )
     }

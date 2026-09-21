@@ -100,11 +100,11 @@ Actual radar imagery will come from NOAA/NCEP. The radar UI never fabricates ech
 
 ## Runtime modes
 
-- Default launch: live NWS forecasts and alerts plus live NOAA/NCEP radar.
-- `--live-weatherkit`: opt into Apple WeatherKit supplements after Apple-side activation and physical-device validation.
+- Default launch: live NWS forecasts and alerts, live NOAA/NCEP radar, and Apple WeatherKit for its assigned supplemental products and whole-group current-condition fallback.
+- `--live-nws`: run live NWS and NOAA/NCEP with WeatherKit disabled for diagnostics.
 - `--preview-data`: deterministic preview repository for UI validation.
 
-This keeps normal launches on the validated NWS/NOAA path while keeping the unvalidated WeatherKit path explicit.
+Provider ownership does not change by mode: WeatherKit never replaces NWS forecasts or alerts, and NOAA/NCEP remains the radar source.
 
 ## Validation
 
