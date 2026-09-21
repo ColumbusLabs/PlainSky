@@ -25,7 +25,9 @@ final class WeatherStore {
     private let repository: any WeatherRepository
     private let preferences: WeatherPreferences
     private let masksStaleLocationData: Bool
+    private let cachesSnapshots: Bool
     private var loadGeneration = 0
+    private var activeLoad: Task<Void, Never>?
 
     init(
         repository: (any WeatherRepository)? = nil,
@@ -33,7 +35,8 @@ final class WeatherStore {
         savedLocations: [WeatherLocation]? = nil,
         preferences: WeatherPreferences? = nil,
         isShowingPlaceholderData: Bool = false,
-        masksStaleLocationData: Bool = false
+        masksStaleLocationData: Bool = false,
+        cachesSnapshots: Bool = false
     ) {
         let resolvedPreferences = preferences ?? .live
 
@@ -41,6 +44,7 @@ final class WeatherStore {
         self.preferences = resolvedPreferences
         self.isShowingPlaceholderData = isShowingPlaceholderData
         self.masksStaleLocationData = masksStaleLocationData
+        self.cachesSnapshots = cachesSnapshots
         self.appearance = resolvedPreferences.loadAppearance() ?? .system
         self.unitSystem = resolvedPreferences.loadUnitSystem() ?? .us
         self.savedLocations = savedLocations
@@ -66,7 +70,10 @@ final class WeatherStore {
         guard !isRefreshing else { return }
 
         let age = Date().timeIntervalSince(snapshot.fetchedAt)
-        guard age >= maxAge else { return }
+        let hasPendingProducts = snapshot.availability.values
+            .contains { $0.isLoading }
+
+        guard age >= maxAge || hasPendingProducts else { return }
 
         await refresh()
     }
@@ -76,11 +83,41 @@ final class WeatherStore {
         let generation = loadGeneration
         let requestedLocation = snapshot.location
 
+        activeLoad?.cancel()
+
+        let load = Task {
+            await performRefresh(
+                generation: generation,
+                location: requestedLocation
+            )
+        }
+        activeLoad = load
+        await load.value
+    }
+
+    private func performRefresh(
+        generation: Int,
+        location requestedLocation: WeatherLocation
+    ) async {
+        guard generation == loadGeneration else { return }
+
         isRefreshing = true
         lastRefreshError = nil
 
         do {
-            let loadedSnapshot = try await repository.load(location: requestedLocation)
+            let loadedSnapshot = try await repository.load(
+                location: requestedLocation
+            ) { primarySnapshot in
+                guard generation == self.loadGeneration,
+                      self.snapshot.location.id == requestedLocation.id else {
+                    return
+                }
+
+                self.snapshot = primarySnapshot
+                self.isShowingPlaceholderData = false
+                self.isRefreshing = false
+                self.cache(primarySnapshot)
+            }
 
             guard generation == loadGeneration,
                   snapshot.location.id == requestedLocation.id else {
@@ -89,9 +126,11 @@ final class WeatherStore {
 
             snapshot = loadedSnapshot
             isShowingPlaceholderData = false
+            cache(loadedSnapshot)
         } catch {
             guard generation == loadGeneration else { return }
             lastRefreshError = error.localizedDescription
+            resolvePendingProducts(with: error.localizedDescription)
         }
 
         if generation == loadGeneration {
@@ -222,12 +261,32 @@ final class WeatherStore {
     }
 
     private func invalidateOutstandingLoad() {
+        activeLoad?.cancel()
         loadGeneration += 1
         isRefreshing = false
     }
 
+    private func resolvePendingProducts(with message: String) {
+        let pendingProducts = snapshot.availability
+            .filter { $0.value.isLoading }
+            .map(\.key)
+
+        guard !pendingProducts.isEmpty else { return }
+
+        var updated = snapshot
+        for product in pendingProducts {
+            updated.availability[product] = .unavailable(message)
+        }
+        snapshot = updated
+    }
+
     private func persistLocations() {
         preferences.saveSavedLocations(savedLocations)
+    }
+
+    private func cache(_ snapshot: WeatherSnapshot) {
+        guard cachesSnapshots else { return }
+        preferences.saveCachedSnapshot(snapshot)
     }
 }
 

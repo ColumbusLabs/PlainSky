@@ -18,7 +18,9 @@ struct AlertsView: View {
                             .accessibilityHint(error)
                     }
 
-                    if let message = alertAvailability.message {
+                    if alertAvailability.isLoading {
+                        checkingState
+                    } else if let message = alertAvailability.message {
                         WeatherUnavailableCard(
                             title: "Alert status unavailable",
                             message: message,
@@ -72,6 +74,22 @@ struct AlertsView: View {
                     .foregroundStyle(WeatherTheme.tertiaryText)
                     .padding(.top, 2)
             }
+        }
+    }
+
+    private var checkingState: some View {
+        WeatherCard {
+            VStack(spacing: 12) {
+                ProgressView()
+                    .controlSize(.large)
+                    .tint(WeatherTheme.accent)
+
+                Text("Checking for active alerts")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(WeatherTheme.primaryText)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 22)
         }
     }
 

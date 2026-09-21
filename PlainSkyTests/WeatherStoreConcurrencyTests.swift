@@ -150,12 +150,16 @@ private final class DelayedWeatherRepository: WeatherRepository {
         self.temperatures = temperatures
     }
 
-    func load(location: WeatherLocation) async throws -> WeatherSnapshot {
+    func load(
+        location: WeatherLocation,
+        onPrimary: (WeatherSnapshot) async -> Void
+    ) async throws -> WeatherSnapshot {
         try await Task.sleep(nanoseconds: delays[location.id] ?? 0)
 
         var snapshot = MockWeather.snapshot
         snapshot.location = location
         snapshot.current.temperature = temperatures[location.id] ?? snapshot.current.temperature
+        await onPrimary(snapshot)
         return snapshot
     }
 }

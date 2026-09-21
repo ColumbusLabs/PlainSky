@@ -27,7 +27,7 @@ protocol RadarProviding {
     func frames(for location: WeatherLocation) async throws -> [RadarFrame]
 }
 
-enum WeatherProduct: String, CaseIterable, Identifiable, Hashable, Sendable {
+enum WeatherProduct: String, Codable, CaseIterable, Identifiable, Hashable, Sendable {
     case currentConditions
     case hourlyForecast
     case dailyForecast

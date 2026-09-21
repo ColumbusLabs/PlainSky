@@ -8,9 +8,11 @@ The app now has a real no-key weather stack:
 
 - **National Weather Service** for current observations, hourly/daily forecasts, and official alerts.
 - **NOAA/NCEP** for live radar frames rendered over a native MapKit map.
-- **Apple WeatherKit** is fully implemented as a supplemental adapter but remains runtime opt-in until the Apple Developer WeatherKit capability is enabled.
+- **Apple WeatherKit** supplements NWS with next-hour precipitation, UV, solar events, and a whole-group current-condition fallback. The adapter is implemented, but remains opt-in pending Apple-side capability setup and physical-device validation.
 
-Normal launches use live NWS + NOAA. Deterministic UI testing uses `--preview-data`. After Apple-side WeatherKit activation, use `--live-weatherkit` to test Apple supplements.
+Normal launches use live NWS + NOAA. Deterministic UI testing uses `--preview-data`; launch with `--live-weatherkit` to opt into WeatherKit supplements after Apple-side activation.
+
+Live launches restore a matching cached snapshot immediately when it is no more than six hours old, then refresh primary NWS data and, when enabled, supplemental products in stages. Expired snapshots are ignored.
 
 The app does not average providers or invent meteorology.
 

@@ -51,6 +51,7 @@ The NWS primary adapter is implemented. It discovers the forecast grid from the 
 
 Every provider product can be:
 
+- `loading`
 - `available`
 - `unsupported(message)`
 - `unavailable(message)`
@@ -60,14 +61,17 @@ This prevents important semantic mistakes such as:
 - a failed minute forecast appearing to mean "no rain"
 - an empty forecast appearing to mean zero values
 - a radar request failure appearing to mean a clear radar image
+- a pending supplemental request appearing as an error or an all-clear
 
 Alerts are treated separately: a successful empty NWS alert result means no active alerts; a failed refresh is surfaced as a failure and never as an all-clear.
 
 ## Refresh behavior
 
+- Primary NWS products are committed to the UI as soon as they arrive; when WeatherKit is enabled, its supplements load in parallel, merge when ready, and are bounded by a timeout so they can never hold the page hostage.
+- The last successful snapshot is cached locally and rendered immediately on launch when it matches the saved location and is no more than six hours old; expired snapshots are ignored. Time-sensitive products (alerts, next-hour precipitation, UV, solar) are re-verified live rather than restored.
 - Cached/in-memory content stays visible while refreshing.
-- Pull-to-refresh always requests fresh data.
-- Returning to the foreground refreshes only when the snapshot is stale.
+- Pull-to-refresh always requests fresh data, cancelling any superseded request.
+- Returning to the foreground refreshes only when the snapshot is stale or still has pending products.
 - Selecting or updating a location triggers a refresh.
 - Request generations prevent a late response for an old location from overwriting a newer selection.
 
@@ -96,10 +100,11 @@ Actual radar imagery will come from NOAA/NCEP. The radar UI never fabricates ech
 
 ## Runtime modes
 
-- Default launch: deterministic preview repository.
-- `--live-nws`: real NWS primary provider with unavailable supplemental WeatherKit/NOAA products surfaced honestly.
+- Default launch: live NWS forecasts and alerts plus live NOAA/NCEP radar.
+- `--live-weatherkit`: opt into Apple WeatherKit supplements after Apple-side activation and physical-device validation.
+- `--preview-data`: deterministic preview repository for UI validation.
 
-This keeps normal visual CI deterministic while allowing live NWS validation without a separate app target.
+This keeps normal launches on the validated NWS/NOAA path while keeping the unvalidated WeatherKit path explicit.
 
 ## Validation
 

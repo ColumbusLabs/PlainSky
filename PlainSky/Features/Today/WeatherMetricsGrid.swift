@@ -52,7 +52,7 @@ struct WeatherMetricsGrid: View {
                     icon: "sun.max.fill",
                     title: "UV index",
                     value: solar?.uvIndex.map(String.init) ?? "—",
-                    detail: solar == nil ? "Unavailable" : solar?.source.provider.rawValue
+                    detail: uvDetail
                 )
 
                 metricButton(
@@ -60,7 +60,7 @@ struct WeatherMetricsGrid: View {
                     icon: "sunset.fill",
                     title: "Sunset",
                     value: solar?.sunset.map(WeatherFormatters.hour) ?? "—",
-                    detail: solar?.sunrise.map { "Sunrise \(WeatherFormatters.hour($0))" }
+                    detail: solarDetail
                 )
 
                 metricButton(
@@ -99,6 +99,26 @@ struct WeatherMetricsGrid: View {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
+    }
+
+    private var uvDetail: String? {
+        if let solar {
+            return solar.source.provider.rawValue
+        }
+
+        return store.snapshot.availability(for: .uvIndex).isLoading
+            ? "Loading…"
+            : "Unavailable"
+    }
+
+    private var solarDetail: String? {
+        if let solar {
+            return solar.sunrise.map { "Sunrise \(WeatherFormatters.hour($0))" }
+        }
+
+        return store.snapshot.availability(for: .solarEvents).isLoading
+            ? "Loading…"
+            : "Unavailable"
     }
 
     @ViewBuilder

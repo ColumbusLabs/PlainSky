@@ -97,7 +97,7 @@ struct SettingsView: View {
                     WeatherCard {
                         VStack(alignment: .leading, spacing: 8) {
                             SectionHeader(title: "Build")
-                            SettingsValueRow(label: "Version", value: "0.1.0")
+                            SettingsValueRow(label: "Version", value: AppEnvironment.appVersion)
                             SettingsValueRow(
                                 label: "Data mode",
                                 value: AppEnvironment.dataMode.title

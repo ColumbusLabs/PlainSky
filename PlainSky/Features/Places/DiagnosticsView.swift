@@ -131,7 +131,7 @@ struct DiagnosticsView: View {
         case .preview:
             return "Deterministic preview data is active for validation."
         case .liveNWS:
-            return "NWS observations, forecasts, alerts, and NOAA radar are live. WeatherKit supplements remain disabled until the Apple capability is enabled."
+            return "NWS observations, forecasts, alerts, and NOAA radar are live. WeatherKit supplements are disabled for this run."
         case .liveNWSWeatherKit:
             return "NWS and NOAA are live, and the app is attempting Apple WeatherKit supplements."
         }
@@ -177,6 +177,8 @@ struct DiagnosticsView: View {
         switch availability {
         case .available:
             "Available"
+        case .loading:
+            "Loading"
         case .unsupported:
             "Unsupported"
         case .unavailable:
@@ -188,6 +190,8 @@ struct DiagnosticsView: View {
         switch availability {
         case .available:
             WeatherTheme.accent
+        case .loading:
+            .secondary
         case .unsupported:
             .secondary
         case .unavailable:

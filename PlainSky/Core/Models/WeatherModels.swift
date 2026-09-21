@@ -88,7 +88,7 @@ struct WeatherSourceMetadata: Hashable, Codable, Sendable {
     }
 }
 
-struct CurrentConditions: Hashable, Sendable {
+struct CurrentConditions: Codable, Hashable, Sendable {
     var temperature: Double
     var apparentTemperature: Double?
     var condition: WeatherCondition
@@ -103,7 +103,7 @@ struct CurrentConditions: Hashable, Sendable {
     var source: WeatherSourceMetadata
 }
 
-struct HourlyForecastItem: Identifiable, Hashable, Sendable {
+struct HourlyForecastItem: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     var date: Date
     var temperature: Double
@@ -143,7 +143,7 @@ struct HourlyForecastItem: Identifiable, Hashable, Sendable {
     }
 }
 
-struct DailyForecastItem: Identifiable, Hashable, Sendable {
+struct DailyForecastItem: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     var date: Date
     var daytimeHigh: Double?
@@ -189,7 +189,7 @@ struct DailyForecastItem: Identifiable, Hashable, Sendable {
     }
 }
 
-struct MinutePrecipitationSample: Identifiable, Hashable, Sendable {
+struct MinutePrecipitationSample: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     var date: Date
     var probability: Double
@@ -219,7 +219,7 @@ enum WeatherAlertSeverity: String, Codable, Sendable {
     case unknown
 }
 
-struct WeatherAlert: Identifiable, Hashable, Sendable {
+struct WeatherAlert: Codable, Identifiable, Hashable, Sendable {
     let id: String
     var event: String
     var headline: String
@@ -232,14 +232,14 @@ struct WeatherAlert: Identifiable, Hashable, Sendable {
     var source: WeatherSourceMetadata
 }
 
-struct SolarWeather: Hashable, Sendable {
+struct SolarWeather: Codable, Hashable, Sendable {
     var sunrise: Date?
     var sunset: Date?
     var uvIndex: Int?
     var source: WeatherSourceMetadata
 }
 
-struct WeatherSnapshot: Sendable {
+struct WeatherSnapshot: Codable, Sendable {
     var location: WeatherLocation
     var current: CurrentConditions
     var hourly: [HourlyForecastItem]
@@ -252,5 +252,17 @@ struct WeatherSnapshot: Sendable {
 
     func availability(for product: WeatherProduct) -> WeatherProductAvailability {
         availability[product] ?? .available
+    }
+
+    func restoringFromCache() -> WeatherSnapshot {
+        var restored = self
+        restored.minutePrecipitation = []
+        restored.alerts = []
+        restored.solar = nil
+        restored.availability[.alerts] = .loading
+        restored.availability[.minutePrecipitation] = .loading
+        restored.availability[.uvIndex] = .loading
+        restored.availability[.solarEvents] = .loading
+        return restored
     }
 }

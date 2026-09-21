@@ -25,9 +25,9 @@ Implemented and tested:
 - native MapKit radar overlay and playback
 - real NOAA radar simulator visual verification
 
-Normal launches now use live NWS + NOAA. `--preview-data` is reserved for deterministic UI validation.
+Normal launches use live NWS + NOAA. `--preview-data` is reserved for deterministic UI validation. WeatherKit supplements are opt-in with `--live-weatherkit` after Apple-side activation.
 
-## WeatherKit — code complete, Apple capability pending
+## WeatherKit — implemented, physical validation pending
 
 Implemented in the repo:
 
@@ -41,13 +41,16 @@ Implemented in the repo:
 - WeatherKit entitlement file and XcodeGen wiring
 - condition-mapping tests
 
-External step still required:
+Apple Developer setup and physical-device validation:
 
 1. Enable WeatherKit on the Apple Developer App ID `com.columbuslabs.weatherapp`.
 2. Refresh provisioning / confirm the capability in Xcode.
-3. Run the app with `--live-weatherkit`.
+3. Launch with `--live-weatherkit`.
 4. Verify minute precipitation, UV, solar events, attribution, and current-condition fallback on a physical device.
-5. Then promote WeatherKit-enabled mode to the normal default.
+
+Until step 4 passes, keep WeatherKit opt-in; do not treat the adapter or simulator tests as physical-device validation.
+
+Live launches may restore a matching cached snapshot for up to six hours while a fresh load runs. Primary NWS data can render before the optional WeatherKit supplement finishes; time-sensitive products are re-verified live.
 
 See `docs/WEATHERKIT_SETUP.md`.
 

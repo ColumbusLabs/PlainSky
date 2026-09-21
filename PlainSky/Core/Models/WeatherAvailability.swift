@@ -1,6 +1,7 @@
 import Foundation
 
-enum WeatherProductAvailability: Equatable, Sendable {
+enum WeatherProductAvailability: Codable, Equatable, Sendable {
+    case loading
     case available
     case unsupported(String)
     case unavailable(String)
@@ -10,9 +11,14 @@ enum WeatherProductAvailability: Equatable, Sendable {
         return false
     }
 
+    var isLoading: Bool {
+        if case .loading = self { return true }
+        return false
+    }
+
     var message: String? {
         switch self {
-        case .available:
+        case .loading, .available:
             nil
         case let .unsupported(message), let .unavailable(message):
             message

@@ -15,6 +15,20 @@ struct WeatherKitSupplementalProvider: SupplementalWeatherProviding {
     }
 
     func weather(for location: WeatherLocation) async throws -> SupplementalWeatherPayload {
+        do {
+            return try await loadWeather(for: location)
+        } catch {
+            if error is CancellationError {
+                throw error
+            }
+
+            throw ProviderError.notConfigured(
+                WeatherKitErrorMapper.message(for: error)
+            )
+        }
+    }
+
+    private func loadWeather(for location: WeatherLocation) async throws -> SupplementalWeatherPayload {
         let requestedLocation = CLLocation(
             latitude: location.latitude,
             longitude: location.longitude
@@ -169,5 +183,25 @@ struct WeatherKitSupplementalProvider: SupplementalWeatherProviding {
             .value
 
         return metersPerSecond * 3_600_000
+    }
+}
+
+enum WeatherKitErrorMapper {
+    static let authenticationMessage = "Apple Weather authentication failed for this build. WeatherKit supplements need the capability enabled for this App ID."
+    static let temporaryMessage = "Apple Weather is temporarily unavailable."
+
+    static func message(for error: Error) -> String {
+        guard isAuthenticationFailure(error) else {
+            return temporaryMessage
+        }
+
+        return authenticationMessage
+    }
+
+    private static func isAuthenticationFailure(_ error: Error) -> Bool {
+        let nsError = error as NSError
+
+        return nsError.domain.contains("WDSJWTAuthenticatorServiceListener")
+            || nsError.localizedDescription.contains("WDSJWTAuthenticatorServiceListener")
     }
 }

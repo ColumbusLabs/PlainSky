@@ -9,6 +9,7 @@ struct WeatherPreferences {
         static let lastLocation = "weather.lastLocation"
         static let appearance = "weather.appearance"
         static let unitSystem = "weather.unitSystem"
+        static let cachedSnapshot = "weather.cachedSnapshot"
     }
 
     private let defaults: UserDefaults
@@ -55,5 +56,15 @@ struct WeatherPreferences {
 
     func saveUnitSystem(_ unitSystem: WeatherUnitSystem) {
         defaults.set(unitSystem.rawValue, forKey: Key.unitSystem)
+    }
+
+    func loadCachedSnapshot() -> WeatherSnapshot? {
+        guard let data = defaults.data(forKey: Key.cachedSnapshot) else { return nil }
+        return try? decoder.decode(WeatherSnapshot.self, from: data)
+    }
+
+    func saveCachedSnapshot(_ snapshot: WeatherSnapshot) {
+        guard let data = try? encoder.encode(snapshot) else { return }
+        defaults.set(data, forKey: Key.cachedSnapshot)
     }
 }
