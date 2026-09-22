@@ -1,18 +1,47 @@
 import Foundation
 
+/// Lets the Today radar card and the Radar tab share one capabilities download; NOAA
+/// publishes a new scan roughly every two minutes, so entries expire quickly.
+final class RadarCapabilitiesCache: @unchecked Sendable {
+    static let shared = RadarCapabilitiesCache()
+
+    private let lifetime: TimeInterval = 90
+    private let lock = NSLock()
+    private var entries: [URL: (times: [Date], storedAt: Date)] = [:]
+
+    func times(for url: URL, now: Date = Date()) -> [Date]? {
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard let entry = entries[url], now.timeIntervalSince(entry.storedAt) < lifetime else {
+            return nil
+        }
+        return entry.times
+    }
+
+    func store(_ times: [Date], for url: URL, now: Date = Date()) {
+        lock.lock()
+        entries[url] = (times, now)
+        lock.unlock()
+    }
+}
+
 struct NOAARadarProvider: RadarProviding {
     private let httpClient: any HTTPClient
     private let historyWindow: TimeInterval
     private let maximumFrames: Int
+    private let capabilitiesCache: RadarCapabilitiesCache?
 
     init(
         httpClient: any HTTPClient = URLSessionHTTPClient(),
-        historyWindow: TimeInterval = 60 * 60,
-        maximumFrames: Int = 40
+        historyWindow: TimeInterval = 2 * 60 * 60,
+        maximumFrames: Int = 12,
+        capabilitiesCache: RadarCapabilitiesCache? = nil
     ) {
         self.httpClient = httpClient
         self.historyWindow = historyWindow
         self.maximumFrames = maximumFrames
+        self.capabilitiesCache = capabilitiesCache
     }
 
     static func supports(location: WeatherLocation) -> Bool {
@@ -30,26 +59,17 @@ struct NOAARadarProvider: RadarProviding {
     func frames(for location: WeatherLocation) async throws -> [RadarFrame] {
         let configuration = try configuration(for: location)
         let capabilitiesURL = try capabilitiesURL(for: configuration)
-
-        var request = URLRequest(url: capabilitiesURL)
-        request.httpMethod = "GET"
-        request.timeoutInterval = 20
-        request.setValue(
-            "PlainSky/0.1 (https://github.com/ColumbusLabs/PlainSky)",
-            forHTTPHeaderField: "User-Agent"
-        )
-
-        let (data, _) = try await httpClient.data(for: request)
-        let allTimes = try RadarTimeParser.frameTimes(from: data)
+        let allTimes = try await frameTimes(from: capabilitiesURL)
 
         guard let newest = allTimes.last else {
             throw RadarProviderError.noFrameTimes
         }
 
         let cutoff = newest.addingTimeInterval(-historyWindow)
-        let recent = allTimes
-            .filter { $0 >= cutoff && $0 <= newest }
-            .suffix(maximumFrames)
+        let recent = Self.evenlySampled(
+            allTimes.filter { $0 >= cutoff && $0 <= newest },
+            limit: maximumFrames
+        )
 
         guard !recent.isEmpty else {
             throw RadarProviderError.noFrameTimes
@@ -66,6 +86,38 @@ struct NOAARadarProvider: RadarProviding {
                 layerName: configuration.layerName
             )
         }
+    }
+
+    private func frameTimes(from capabilitiesURL: URL) async throws -> [Date] {
+        if let cached = capabilitiesCache?.times(for: capabilitiesURL) {
+            return cached
+        }
+
+        var request = URLRequest(url: capabilitiesURL)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 20
+        request.setValue(
+            "PlainSky/0.1 (https://github.com/ColumbusLabs/PlainSky)",
+            forHTTPHeaderField: "User-Agent"
+        )
+
+        let (data, _) = try await httpClient.data(for: request)
+        let times = try RadarTimeParser.frameTimes(from: data)
+        capabilitiesCache?.store(times, for: capabilitiesURL)
+        return times
+    }
+
+    /// Spreads playback across the whole history window and always keeps the newest frame.
+    static func evenlySampled(_ times: [Date], limit: Int) -> [Date] {
+        guard limit > 0, times.count > limit else { return times }
+        guard limit > 1 else { return Array(times.suffix(1)) }
+
+        let lastIndex = times.count - 1
+        let indices = (0..<limit).map { step in
+            lastIndex - Int((Double(lastIndex) * Double(limit - 1 - step) / Double(limit - 1)).rounded())
+        }
+
+        return Array(Set(indices)).sorted().map { times[$0] }
     }
 
     private func capabilitiesURL(

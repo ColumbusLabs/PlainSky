@@ -19,13 +19,28 @@ extension URLSession {
 }
 
 struct URLSessionHTTPClient: HTTPClient {
-    private let session: URLSession
+    /// NWS documents that rate-limited requests "may be retried after the limit clears
+    /// (typically within 5 seconds)"; its CDN answers those with 403.
+    static let retryableStatusCodes: Set<Int> = [403, 429, 500, 502, 503, 504]
 
-    init(session: URLSession = .weather) {
+    private let session: URLSession
+    private let retryDelay: Duration
+
+    init(session: URLSession = .weather, retryDelay: Duration = .seconds(5)) {
         self.session = session
+        self.retryDelay = retryDelay
     }
 
     func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        do {
+            return try await attempt(request)
+        } catch let ProviderError.httpStatus(code) where Self.retryableStatusCodes.contains(code) {
+            try await Task.sleep(for: retryDelay)
+            return try await attempt(request)
+        }
+    }
+
+    private func attempt(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         let (data, response) = try await session.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -54,8 +69,12 @@ enum ProviderError: LocalizedError, Equatable {
             "The provider URL could not be created."
         case .invalidResponse:
             "The weather provider returned an invalid response."
+        case .httpStatus(403), .httpStatus(429):
+            "The weather service is limiting requests right now. It will retry shortly."
+        case let .httpStatus(code) where code >= 500:
+            "The weather service is having trouble right now. It will retry shortly."
         case let .httpStatus(code):
-            "The weather provider returned HTTP \(code)."
+            "The weather service returned an unexpected response (HTTP \(code))."
         case let .decoding(message):
             "The provider response could not be decoded: \(message)"
         case let .missingRequiredData(message):

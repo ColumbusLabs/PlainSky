@@ -33,7 +33,7 @@ struct DataSourcesCard: View {
                     SourceRow(title: "Next-hour precipitation", metadata: minuteSource)
                 }
 
-                Text("Forecasts, observations, and alerts from the National Weather Service. Radar from NOAA.")
+                Text("Forecasts, observations, and alerts from the National Weather Service. Radar from NOAA. Forecast radar is NOAA's HRRR model, provided by the Iowa Environmental Mesonet at Iowa State University.")
                     .font(.caption)
                     .foregroundStyle(WeatherTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)

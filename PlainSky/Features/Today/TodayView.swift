@@ -23,7 +23,8 @@ struct TodayView: View {
                     RefreshErrorBanner()
 
                     if store.snapshot.alerts.isEmpty,
-                       let alertMessage = store.snapshot.availability(for: .alerts).message {
+                       let alertMessage = store.snapshot.availability(for: .alerts).message,
+                       alertMessage != store.lastRefreshError {
                         WeatherUnavailableCard(
                             title: "Alert status unavailable",
                             message: alertMessage,
@@ -90,7 +91,8 @@ struct TodayView: View {
             NextHourPrecipitationCard(samples: store.snapshot.minutePrecipitation)
         } else if let message = store.snapshot
             .availability(for: .minutePrecipitation)
-            .message {
+            .message,
+            message != store.lastRefreshError {
             WeatherUnavailableCard(
                 title: "Next-hour precipitation unavailable",
                 message: message,

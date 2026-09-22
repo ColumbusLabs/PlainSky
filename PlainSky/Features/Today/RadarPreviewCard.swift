@@ -7,51 +7,42 @@ struct RadarPreviewCard: View {
 
     @State private var latestFrame: RadarFrame?
 
-    private let radarProvider = NOAARadarProvider()
-
-    private var cardShape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: WeatherTheme.cardRadius, style: .continuous)
-    }
+    private let radarProvider = NOAARadarProvider(capabilitiesCache: .shared)
 
     var body: some View {
         Button {
             onOpen?()
         } label: {
-            HStack(spacing: 0) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Live Radar")
-                        .font(.headline)
-                        .foregroundStyle(WeatherTheme.primaryText)
+            WeatherCard(padding: 12) {
+                VStack(alignment: .leading, spacing: 10) {
+                    SectionHeader(
+                        title: "Live Radar",
+                        subtitle: availability.message == nil
+                            ? "See what's happening near you"
+                            : "Radar preview unavailable",
+                        showsChevron: onOpen != nil
+                    )
+                    .padding(.horizontal, 4)
+                    .padding(.top, 2)
 
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(availability.message == nil ? "See what's happening near you" : "Radar preview unavailable")
-                            .font(.caption)
-                            .foregroundStyle(WeatherTheme.secondaryText)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        if onOpen != nil {
-                            Image(systemName: "chevron.right")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(WeatherTheme.tertiaryText)
-                        }
+                    RadarMapView(
+                        location: location,
+                        frames: latestFrame.map { [$0] } ?? [],
+                        selectedFrameID: latestFrame?.id,
+                        recenterToken: 0,
+                        isInteractive: false,
+                        regionMeters: 220_000
+                    )
+                    .frame(height: 150)
+                    .clipShape(RoundedRectangle(cornerRadius: WeatherTheme.smallRadius, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: WeatherTheme.smallRadius, style: .continuous)
+                            .strokeBorder(WeatherTheme.insetStroke, lineWidth: 1)
                     }
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
                 }
-                .padding(WeatherTheme.cardPadding)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                RadarMapView(
-                    location: location,
-                    frame: latestFrame,
-                    recenterToken: 0,
-                    isInteractive: false
-                )
-                .frame(maxWidth: .infinity)
-                .accessibilityHidden(true)
             }
-            .frame(height: 104)
-            .clipShape(cardShape)
-            .weatherSurface()
-            .overlay(cardShape.strokeBorder(WeatherTheme.cardStroke, lineWidth: 1))
         }
         .buttonStyle(.plain)
         .disabled(onOpen == nil)

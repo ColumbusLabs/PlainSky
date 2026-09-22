@@ -105,7 +105,7 @@ struct NWSWeatherProvider: PrimaryWeatherProviding {
         )
     }
 
-    private static let parallelStationCount = 3
+    private static let parallelStationCount = 2
     private static let maximumStationCount = 5
 
     private func currentConditions(

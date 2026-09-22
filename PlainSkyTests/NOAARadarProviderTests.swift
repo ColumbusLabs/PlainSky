@@ -86,6 +86,39 @@ final class NOAARadarProviderTests: XCTestCase {
         )
     }
 
+    func testFrameSamplingSpansWindowAndKeepsNewest() {
+        let start = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        let times = (0..<30).map { start.addingTimeInterval(Double($0) * 120) }
+
+        let sampled = NOAARadarProvider.evenlySampled(times, limit: 12)
+
+        XCTAssertEqual(sampled.count, 12)
+        XCTAssertEqual(sampled.first, times.first)
+        XCTAssertEqual(sampled.last, times.last)
+        XCTAssertEqual(sampled, sampled.sorted())
+        XCTAssertEqual(NOAARadarProvider.evenlySampled(Array(times.prefix(5)), limit: 12).count, 5)
+    }
+
+    func testWMSTileURLRequestsSmoothedRetinaTiles() throws {
+        let frame = RadarFrame(
+            id: "frame",
+            timestamp: Date(timeIntervalSinceReferenceDate: 800_000_000),
+            serviceURL: try XCTUnwrap(URL(string: "https://opengeo.ncep.noaa.gov/geoserver/conus/conus_bref_qcd/ows")),
+            layerName: "conus_bref_qcd"
+        )
+        let url = RadarWMSTileOverlay(frame: frame).url(
+            forTilePath: MKTileOverlayPath(x: 1, y: 1, z: 2, contentScaleFactor: 3)
+        )
+        let query = Dictionary(
+            uniqueKeysWithValues: (URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? [])
+                .map { ($0.name, $0.value ?? "") }
+        )
+
+        XCTAssertEqual(query["WIDTH"], "512")
+        XCTAssertEqual(query["HEIGHT"], "512")
+        XCTAssertEqual(query["INTERPOLATIONS"], "bilinear")
+    }
+
     func testWMSTileURLUsesExactFrameAndWebMercator() throws {
         let timestamp = try XCTUnwrap(
             ISO8601DateFormatter().date(from: "2026-09-19T22:00:00Z")
