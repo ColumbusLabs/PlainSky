@@ -35,7 +35,7 @@ struct RootTabView: View {
             }
             .tag(AppTab.radar)
             .tabItem {
-                Label("Radar", systemImage: "map")
+                Label("Radar", systemImage: "scope")
             }
 
             NavigationStack {
@@ -43,7 +43,7 @@ struct RootTabView: View {
             }
             .tag(AppTab.places)
             .tabItem {
-                Label("Places", systemImage: "location")
+                Label("Places", systemImage: "mappin")
             }
         }
         .environment(router)

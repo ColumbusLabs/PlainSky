@@ -10,12 +10,6 @@ final class WeatherStore {
     var lastRefreshError: String?
     var isShowingPlaceholderData: Bool
 
-    var appearance: AppAppearance {
-        didSet {
-            preferences.saveAppearance(appearance)
-        }
-    }
-
     var unitSystem: WeatherUnitSystem {
         didSet {
             preferences.saveUnitSystem(unitSystem)
@@ -45,7 +39,6 @@ final class WeatherStore {
         self.isShowingPlaceholderData = isShowingPlaceholderData
         self.masksStaleLocationData = masksStaleLocationData
         self.cachesSnapshots = cachesSnapshots
-        self.appearance = resolvedPreferences.loadAppearance() ?? .system
         self.unitSystem = resolvedPreferences.loadUnitSystem() ?? .us
         self.savedLocations = savedLocations
             ?? resolvedPreferences.loadSavedLocations()
@@ -56,14 +49,6 @@ final class WeatherStore {
             initialSnapshot.location = lastLocation
         }
         self.snapshot = initialSnapshot
-    }
-
-    var preferredColorScheme: ColorScheme? {
-        switch appearance {
-        case .system: nil
-        case .light: .light
-        case .dark: .dark
-        }
     }
 
     func refreshIfNeeded(maxAge: TimeInterval = 10 * 60) async {
@@ -287,21 +272,5 @@ final class WeatherStore {
     private func cache(_ snapshot: WeatherSnapshot) {
         guard cachesSnapshots else { return }
         preferences.saveCachedSnapshot(snapshot)
-    }
-}
-
-enum AppAppearance: String, CaseIterable, Identifiable {
-    case system
-    case light
-    case dark
-
-    var id: Self { self }
-
-    var title: String {
-        switch self {
-        case .system: "System"
-        case .light: "Light"
-        case .dark: "Dark"
-        }
     }
 }

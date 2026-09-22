@@ -57,6 +57,34 @@ enum WeatherCondition: String, Codable, Sendable {
         case .unknown: "cloud.fill"
         }
     }
+
+    func symbolName(isDaytime: Bool) -> String {
+        guard !isDaytime else { return symbolName }
+
+        switch self {
+        case .clear: return "moon.fill"
+        case .mostlyClear: return "moon.stars.fill"
+        case .partlyCloudy: return "cloud.moon.fill"
+        case .cloudy, .rain, .heavyRain, .thunderstorm, .snow, .fog, .windy, .unknown:
+            return symbolName
+        }
+    }
+
+    func displayName(isDaytime: Bool = true) -> String {
+        switch self {
+        case .clear: isDaytime ? "Sunny" : "Clear"
+        case .mostlyClear: isDaytime ? "Mostly Sunny" : "Mostly Clear"
+        case .partlyCloudy: "Partly Cloudy"
+        case .cloudy: "Cloudy"
+        case .rain: "Rain"
+        case .heavyRain: "Heavy Rain"
+        case .thunderstorm: "Thunderstorms"
+        case .snow: "Snow"
+        case .fog: "Fog"
+        case .windy: "Windy"
+        case .unknown: "Mixed"
+        }
+    }
 }
 
 enum WeatherProvider: String, Codable, Sendable {

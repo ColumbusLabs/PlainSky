@@ -35,7 +35,7 @@ struct AlertsView: View {
                             NavigationLink {
                                 AlertDetailView(alert: alert)
                             } label: {
-                                AlertBanner(alert: alert)
+                                AlertBanner(alert: alert, showsHeadline: true)
                             }
                             .buttonStyle(.plain)
                         }

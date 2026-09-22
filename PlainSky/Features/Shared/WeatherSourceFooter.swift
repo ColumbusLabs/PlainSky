@@ -1,62 +1,63 @@
 import SwiftUI
 
-struct SourceSummaryCard: View {
-    let snapshot: WeatherSnapshot
+struct WeatherSourceFooter: View {
+    let primary: WeatherSourceMetadata
+    let attributionCandidates: [WeatherSourceMetadata]
+
+    init(primary: WeatherSourceMetadata, attributionCandidates: [WeatherSourceMetadata]) {
+        self.primary = primary
+        self.attributionCandidates = attributionCandidates
+    }
+
+    init(snapshot: WeatherSnapshot) {
+        self.init(
+            primary: snapshot.current.source,
+            attributionCandidates: [
+                snapshot.current.source,
+                snapshot.minutePrecipitation.first?.source,
+                snapshot.solar?.source,
+                snapshot.hourly.first?.source,
+                snapshot.daily.first?.source
+            ].compactMap { $0 }
+        )
+    }
+
+    /// Apple requires its Weather mark and legal link wherever WeatherKit data is shown.
+    private var weatherKitSource: WeatherSourceMetadata? {
+        ([primary] + attributionCandidates).first {
+            $0.provider == .weatherKit && $0.attributionLegalURL != nil
+        }
+    }
 
     var body: some View {
-        NavigationLink {
-            DiagnosticsView()
-        } label: {
-            WeatherCard {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        SectionHeader(title: "Sources & freshness")
+        VStack(spacing: 10) {
+            NavigationLink {
+                DiagnosticsView()
+            } label: {
+                HStack(spacing: 6) {
+                    SourceFreshnessView(metadata: primary)
 
-                        Spacer()
-
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(WeatherTheme.tertiaryText)
-                    }
-
-                    SourceRow(
-                        title: "Current conditions",
-                        metadata: snapshot.current.source
-                    )
-
-                    if let hourlySource = snapshot.hourly.first?.source {
-                        Divider().overlay(WeatherTheme.divider)
-                        SourceRow(title: "Forecast", metadata: hourlySource)
-                    }
-
-                    if let minuteSource = snapshot.minutePrecipitation.first?.source {
-                        Divider().overlay(WeatherTheme.divider)
-                        SourceRow(title: "Next-hour precipitation", metadata: minuteSource)
-                    }
-
-                    Text("Every weather value keeps its provider and original observation or forecast time. Tap for full diagnostics.")
-                        .font(.caption)
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.bold))
                         .foregroundStyle(WeatherTheme.tertiaryText)
-                        .padding(.top, 2)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background {
+                    Capsule()
+                        .fill(WeatherTheme.insetFill)
+                        .overlay(Capsule().strokeBorder(WeatherTheme.insetStroke, lineWidth: 1))
                 }
             }
+            .buttonStyle(.plain)
+            .accessibilityHint("Opens data sources and freshness details")
+
+            if let weatherKitSource {
+                WeatherProviderAttributionView(metadata: weatherKitSource)
+                    .frame(maxWidth: 240)
+            }
         }
-        .buttonStyle(.plain)
-        .accessibilityHint("Opens detailed provider freshness and availability")
-    }
-}
-
-private struct SourceRow: View {
-    let title: String
-    let metadata: WeatherSourceMetadata
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(WeatherTheme.primaryText)
-
-            SourceFreshnessView(metadata: metadata)
-        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 4)
     }
 }

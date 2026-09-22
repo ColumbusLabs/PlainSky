@@ -10,7 +10,7 @@ struct PlacesView: View {
 
     var body: some View {
         ZStack {
-            WeatherBackdrop(style: .night)
+            WeatherBackdrop(style: .calm)
 
             ScrollView {
                 LazyVStack(spacing: 16) {
@@ -72,7 +72,7 @@ struct PlacesView: View {
                                         .font(.headline)
                                         .foregroundStyle(WeatherTheme.primaryText)
 
-                                    Text("Appearance, units, sources, privacy, and diagnostics")
+                                    Text("Units, sources, privacy, and diagnostics")
                                         .font(.caption)
                                         .foregroundStyle(WeatherTheme.secondaryText)
                                 }

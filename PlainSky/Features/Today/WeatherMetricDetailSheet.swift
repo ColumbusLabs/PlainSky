@@ -11,7 +11,7 @@ struct WeatherMetricDetailSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                WeatherBackdrop(style: .night)
+                WeatherBackdrop(style: .calm)
 
                 ScrollView {
                     VStack(spacing: 16) {

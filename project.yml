@@ -30,6 +30,7 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSRequiresIPhoneOS: true
         NSLocationWhenInUseUsageDescription: Your location is used to show weather for where you are. Your location is not stored on our servers.
+        UIUserInterfaceStyle: Light
         UILaunchScreen:
           UIColorName: LaunchBackground
         UISupportedInterfaceOrientations:

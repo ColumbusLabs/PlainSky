@@ -29,7 +29,7 @@ struct DiagnosticsView: View {
 
     var body: some View {
         ZStack {
-            WeatherBackdrop(style: .night)
+            WeatherBackdrop(style: .calm)
 
             ScrollView {
                 LazyVStack(spacing: 16) {

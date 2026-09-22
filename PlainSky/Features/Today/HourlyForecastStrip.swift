@@ -2,69 +2,61 @@ import SwiftUI
 
 struct HourlyForecastStrip: View {
     @Environment(WeatherStore.self) private var store
-    @ScaledMetric(relativeTo: .body) private var cellWidth: CGFloat = 67
+    @ScaledMetric(relativeTo: .body) private var cellWidth: CGFloat = 56
 
     let items: [HourlyForecastItem]
-    var onSeeAll: (() -> Void)?
 
     var body: some View {
-        WeatherCard {
-            VStack(alignment: .leading, spacing: 14) {
-                SectionHeader(
-                    title: "Hourly",
-                    actionTitle: onSeeAll == nil ? nil : "See all",
-                    action: onSeeAll
-                )
+        WeatherCard(padding: 0) {
+            ScrollView(.horizontal) {
+                HStack(spacing: 0) {
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                        cell(item: item, label: index == 0 ? "Now" : WeatherFormatters.hourLabel(item.date))
 
-                ScrollView(.horizontal) {
-                    LazyHStack(spacing: 0) {
-                        ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                            VStack(spacing: 10) {
-                                Text(WeatherFormatters.hour(item.date))
-                                    .font(.caption)
-                                    .foregroundStyle(
-                                        WeatherTheme.secondaryText
-                                    )
-
-                                Image(systemName: item.condition.symbolName)
-                                    .symbolRenderingMode(.multicolor)
-                                    .font(.title3)
-
-                                Text(
-                                    WeatherFormatters.temperature(
-                                        item.temperature,
-                                        unitSystem: store.unitSystem
-                                    )
-                                )
-                                .font(.headline.monospacedDigit())
-                                .foregroundStyle(WeatherTheme.primaryText)
-
-                                HStack(spacing: 3) {
-                                    Image(systemName: "drop.fill")
-                                        .font(.caption2)
-                                    Text(WeatherFormatters.percent(item.precipitationChance))
-                                        .font(.caption2.monospacedDigit())
-                                }
-                                .foregroundStyle(WeatherTheme.accent)
-                            }
-                            .frame(width: max(67, cellWidth))
-                            .accessibilityElement(children: .combine)
-                            .accessibilityLabel(
-                                "\(WeatherFormatters.hour(item.date)), " +
-                                "\(WeatherFormatters.temperature(item.temperature, unitSystem: store.unitSystem)), " +
-                                "precipitation \(WeatherFormatters.percent(item.precipitationChance))"
-                            )
-
-                            if index < items.count - 1 {
-                                Divider()
-                                    .overlay(WeatherTheme.divider)
-                                    .frame(height: 74)
-                            }
+                        if index < items.count - 1 {
+                            Rectangle()
+                                .fill(WeatherTheme.divider)
+                                .frame(width: 1, height: 64)
                         }
                     }
                 }
-                .scrollIndicators(.hidden)
+                .padding(.horizontal, 6)
             }
+            .scrollIndicators(.hidden)
         }
+    }
+
+    private func cell(item: HourlyForecastItem, label: String) -> some View {
+        let temperature = WeatherFormatters.temperature(item.temperature, unitSystem: store.unitSystem)
+        let precipitation = WeatherFormatters.percent(item.precipitationChance)
+
+        return VStack(spacing: 8) {
+            Text(label)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(WeatherTheme.secondaryText)
+
+            ConditionIcon(
+                condition: item.condition,
+                isDaytime: WeatherDaylight.isDaytime(item.date, solar: store.snapshot.solar),
+                size: 22
+            )
+            .frame(height: 26)
+
+            Text(temperature)
+                .font(.headline.monospacedDigit())
+                .foregroundStyle(WeatherTheme.primaryText)
+
+            HStack(spacing: 2) {
+                Image(systemName: "drop.fill")
+                Text(precipitation)
+                    .monospacedDigit()
+            }
+            .font(.caption2.weight(.medium))
+            .foregroundStyle(WeatherTheme.accent)
+        }
+        .frame(width: max(56, cellWidth))
+        .padding(.vertical, 14)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(label), \(temperature), precipitation \(precipitation)")
     }
 }

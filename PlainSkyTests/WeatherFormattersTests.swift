@@ -50,6 +50,21 @@ final class WeatherFormattersTests: XCTestCase {
         )
     }
 
+    func testCompactDayUsesTodayOrTonight() {
+        let today = Date()
+
+        XCTAssertEqual(WeatherFormatters.compactDay(today, hasDaytimePeriod: true), "Today")
+        XCTAssertEqual(WeatherFormatters.compactDay(today, hasDaytimePeriod: false), "Tonight")
+    }
+
+    func testUVCategoryBoundaries() {
+        XCTAssertEqual(WeatherFormatters.uvCategory(2), "Low")
+        XCTAssertEqual(WeatherFormatters.uvCategory(3), "Moderate")
+        XCTAssertEqual(WeatherFormatters.uvCategory(6), "High")
+        XCTAssertEqual(WeatherFormatters.uvCategory(8), "Very High")
+        XCTAssertEqual(WeatherFormatters.uvCategory(11), "Extreme")
+    }
+
     func testMetricWindAndVisibilityConversion() {
         XCTAssertEqual(
             WeatherFormatters.wind(

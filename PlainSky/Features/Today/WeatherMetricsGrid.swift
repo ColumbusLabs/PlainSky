@@ -10,84 +10,82 @@ struct WeatherMetricsGrid: View {
     @State private var selectedMetric: WeatherMetric?
 
     private var columns: [GridItem] {
+        let count: Int
         if dynamicTypeSize.isAccessibilitySize {
-            return [GridItem(.flexible())]
+            count = 1
+        } else if dynamicTypeSize >= .xLarge {
+            count = 2
+        } else {
+            count = 3
         }
 
-        return [
-            GridItem(.flexible(), spacing: 12),
-            GridItem(.flexible(), spacing: 12)
-        ]
+        return Array(repeating: GridItem(.flexible(), spacing: 8), count: count)
     }
 
     var body: some View {
-        VStack(spacing: 12) {
-            LazyVGrid(columns: columns, spacing: 12) {
-                metricButton(
-                    .wind,
-                    icon: "wind",
-                    title: "Wind",
-                    value: WeatherFormatters.wind(
-                        speed: current.windSpeed,
-                        direction: current.windDirection,
-                        unitSystem: store.unitSystem
-                    ),
-                    detail: current.windGust.map {
-                        "Gusts \(WeatherFormatters.wind(speed: $0, direction: nil, unitSystem: store.unitSystem))"
-                    }
-                )
+        WeatherCard {
+            VStack(alignment: .leading, spacing: 12) {
+                SectionHeader(title: "Weather Metrics")
 
-                metricButton(
-                    .humidity,
-                    icon: "humidity.fill",
-                    title: "Humidity",
-                    value: WeatherFormatters.percent(current.humidity),
-                    detail: current.dewPoint.map {
-                        "Dew point \(WeatherFormatters.temperature($0, unitSystem: store.unitSystem))"
-                    }
-                )
+                LazyVGrid(columns: columns, spacing: 8) {
+                    metricButton(
+                        .wind,
+                        icon: "wind",
+                        title: "Wind",
+                        value: WeatherFormatters.wind(
+                            speed: current.windSpeed,
+                            direction: nil,
+                            unitSystem: store.unitSystem
+                        ),
+                        detail: current.windDirection
+                    )
 
-                metricButton(
-                    .uv,
-                    icon: "sun.max.fill",
-                    title: "UV index",
-                    value: solar?.uvIndex.map(String.init) ?? "—",
-                    detail: uvDetail
-                )
+                    metricButton(
+                        .humidity,
+                        icon: "drop.fill",
+                        title: "Humidity",
+                        value: WeatherFormatters.percent(current.humidity),
+                        detail: nil
+                    )
 
-                metricButton(
-                    .sun,
-                    icon: "sunset.fill",
-                    title: "Sunset",
-                    value: solar?.sunset.map(WeatherFormatters.hour) ?? "—",
-                    detail: solarDetail
-                )
+                    metricButton(
+                        .uv,
+                        icon: "sun.max.fill",
+                        title: "UV Index",
+                        value: solar?.uvIndex.map(String.init) ?? "—",
+                        detail: uvDetail
+                    )
 
-                metricButton(
-                    .visibility,
-                    icon: "eye.fill",
-                    title: "Visibility",
-                    value: WeatherFormatters.visibility(
-                        current.visibilityMiles,
-                        unitSystem: store.unitSystem
-                    ),
-                    detail: current.source.sourceName
-                )
+                    metricButton(
+                        .visibility,
+                        icon: "eye.fill",
+                        title: "Visibility",
+                        value: WeatherFormatters.visibility(
+                            current.visibilityMiles,
+                            unitSystem: store.unitSystem
+                        ),
+                        detail: nil
+                    )
 
-                metricButton(
-                    .pressure,
-                    icon: "gauge.with.dots.needle.33percent",
-                    title: "Pressure",
-                    value: WeatherFormatters.pressure(
-                        current.pressureMillibars,
-                        unitSystem: store.unitSystem
-                    ),
-                    detail: current.source.provider.rawValue
-                )
-            }
+                    metricButton(
+                        .sun,
+                        icon: "sunset.fill",
+                        title: "Sunset",
+                        value: solar?.sunset.map(WeatherFormatters.hour) ?? "—",
+                        detail: solar == nil ? pendingDetail(for: .solarEvents) : nil
+                    )
 
-            if let solar {
-                WeatherProviderAttributionView(metadata: solar.source)
+                    metricButton(
+                        .pressure,
+                        icon: "gauge.with.dots.needle.33percent",
+                        title: "Pressure",
+                        value: WeatherFormatters.pressure(
+                            current.pressureMillibars,
+                            unitSystem: store.unitSystem
+                        ),
+                        detail: nil
+                    )
+                }
             }
         }
         .sheet(item: $selectedMetric) { metric in
@@ -102,26 +100,19 @@ struct WeatherMetricsGrid: View {
     }
 
     private var uvDetail: String? {
-        if let solar {
-            return solar.source.provider.rawValue
+        if let uvIndex = solar?.uvIndex {
+            return WeatherFormatters.uvCategory(uvIndex)
         }
 
-        return store.snapshot.availability(for: .uvIndex).isLoading
+        return pendingDetail(for: .uvIndex)
+    }
+
+    private func pendingDetail(for product: WeatherProduct) -> String {
+        store.snapshot.availability(for: product).isLoading
             ? "Loading…"
             : "Unavailable"
     }
 
-    private var solarDetail: String? {
-        if let solar {
-            return solar.sunrise.map { "Sunrise \(WeatherFormatters.hour($0))" }
-        }
-
-        return store.snapshot.availability(for: .solarEvents).isLoading
-            ? "Loading…"
-            : "Unavailable"
-    }
-
-    @ViewBuilder
     private func metricButton(
         _ metric: WeatherMetric,
         icon: String,
@@ -132,7 +123,7 @@ struct WeatherMetricsGrid: View {
         Button {
             selectedMetric = metric
         } label: {
-            MetricCard(
+            MetricTile(
                 icon: icon,
                 title: title,
                 value: value,
@@ -155,51 +146,43 @@ enum WeatherMetric: String, Identifiable {
     var id: Self { self }
 }
 
-private struct MetricCard: View {
+private struct MetricTile: View {
     let icon: String
     let title: String
     let value: String
     let detail: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: icon)
-                    .foregroundStyle(WeatherTheme.accent)
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(WeatherTheme.accent)
+                .frame(width: 22)
+                .padding(.top, 2)
 
-                Text(title.uppercased())
-                    .font(.caption2.weight(.semibold))
-                    .tracking(0.6)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption2.weight(.medium))
                     .foregroundStyle(WeatherTheme.secondaryText)
 
-                Spacer()
+                Text(value)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(WeatherTheme.primaryText)
 
-                Image(systemName: "chevron.up")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(WeatherTheme.tertiaryText)
-            }
-
-            Text(value)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(WeatherTheme.primaryText)
-                .fixedSize(horizontal: false, vertical: true)
-
-            if let detail {
-                Text(detail)
-                    .font(.caption)
-                    .foregroundStyle(WeatherTheme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, minHeight: 124, alignment: .topLeading)
-        .background {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .stroke(WeatherTheme.cardStroke, lineWidth: 1)
+                if let detail {
+                    Text(detail)
+                        .font(.caption2)
+                        .foregroundStyle(WeatherTheme.secondaryText)
                 }
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+
+            Spacer(minLength: 0)
         }
+        .padding(10)
+        .frame(maxWidth: .infinity, minHeight: 64, alignment: .topLeading)
+        .weatherInsetSurface()
+        .accessibilityElement(children: .combine)
     }
 }

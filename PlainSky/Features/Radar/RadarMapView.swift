@@ -5,6 +5,7 @@ struct RadarMapView: UIViewRepresentable {
     let location: WeatherLocation
     let frame: RadarFrame?
     let recenterToken: Int
+    var isInteractive = true
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -14,11 +15,21 @@ struct RadarMapView: UIViewRepresentable {
         let mapView = MKMapView(frame: .zero)
         mapView.delegate = context.coordinator
         mapView.mapType = .mutedStandard
-        mapView.showsCompass = true
-        mapView.showsScale = true
-        mapView.pointOfInterestFilter = .includingAll
-        mapView.isRotateEnabled = true
         mapView.isPitchEnabled = false
+
+        if isInteractive {
+            mapView.showsCompass = true
+            mapView.showsScale = true
+            mapView.pointOfInterestFilter = .includingAll
+            mapView.isRotateEnabled = true
+        } else {
+            mapView.isUserInteractionEnabled = false
+            mapView.showsCompass = false
+            mapView.showsScale = false
+            mapView.pointOfInterestFilter = .excludingAll
+            mapView.isRotateEnabled = false
+        }
+
         return mapView
     }
 
@@ -26,6 +37,7 @@ struct RadarMapView: UIViewRepresentable {
         context.coordinator.updateLocation(
             location,
             recenterToken: recenterToken,
+            regionMeters: isInteractive ? 180_000 : 90_000,
             on: mapView
         )
         context.coordinator.updateRadarFrame(frame, on: mapView)
@@ -41,6 +53,7 @@ struct RadarMapView: UIViewRepresentable {
         func updateLocation(
             _ location: WeatherLocation,
             recenterToken: Int,
+            regionMeters: CLLocationDistance,
             on mapView: MKMapView
         ) {
             let coordinate = CLLocationCoordinate2D(
@@ -64,8 +77,8 @@ struct RadarMapView: UIViewRepresentable {
                 mapView.setRegion(
                     MKCoordinateRegion(
                         center: coordinate,
-                        latitudinalMeters: 180_000,
-                        longitudinalMeters: 180_000
+                        latitudinalMeters: regionMeters,
+                        longitudinalMeters: regionMeters
                     ),
                     animated: !locationChanged
                 )

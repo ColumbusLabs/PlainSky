@@ -14,7 +14,7 @@ struct SourcePolicyView: View {
 
     var body: some View {
         ZStack {
-            WeatherBackdrop(style: .night)
+            WeatherBackdrop(style: .calm)
 
             ScrollView {
                 VStack(spacing: 16) {

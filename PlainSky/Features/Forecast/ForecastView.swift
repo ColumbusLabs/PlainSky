@@ -13,29 +13,24 @@ struct ForecastView: View {
 
     var body: some View {
         ZStack {
-            WeatherBackdrop(style: .clear)
+            WeatherBackdrop(style: .current(for: store.snapshot))
 
             ScrollView {
-                LazyVStack(spacing: 16) {
+                LazyVStack(spacing: WeatherTheme.sectionSpacing) {
                     header
+                        .padding(.bottom, 10)
+
+                    ForecastModePicker(selection: mode)
 
                     RefreshErrorBanner()
 
-                    Picker("Forecast view", selection: mode) {
-                        ForEach(ForecastMode.allCases) { mode in
-                            Text(mode.title).tag(mode)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .accessibilityLabel("Forecast view")
-
                     forecastContent
 
-                    SourceSummaryCard(snapshot: store.snapshot)
+                    WeatherSourceFooter(snapshot: store.snapshot)
                 }
                 .padding(.horizontal, WeatherTheme.horizontalPadding)
                 .padding(.top, 8)
-                .padding(.bottom, 28)
+                .padding(.bottom, 24)
             }
             .scrollIndicators(.hidden)
             .refreshable {
@@ -47,6 +42,7 @@ struct ForecastView: View {
                 LiveWeatherLoadingView(title: "Loading live forecast")
             }
         }
+        .navigationTitle("Forecast")
         .toolbar(.hidden, for: .navigationBar)
     }
 
@@ -80,22 +76,89 @@ struct ForecastView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .lastTextBaseline) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Forecast")
-                    .font(.largeTitle.bold())
-                    .foregroundStyle(WeatherTheme.primaryText)
+        let current = store.snapshot.current
 
-                Text(store.snapshot.location.displayName)
-                    .font(.subheadline)
-                    .foregroundStyle(WeatherTheme.secondaryText)
+        return HStack(alignment: .bottom, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Forecast")
+                    .font(.largeTitle.weight(.bold))
+                    .accessibilityAddTraits(.isHeader)
+
+                LocationMenu {
+                    HStack(spacing: 6) {
+                        Text(store.snapshot.location.displayName)
+                            .font(.body.weight(.medium))
+                            .lineLimit(1)
+
+                        Image(systemName: "chevron.down")
+                            .font(.caption.weight(.bold))
+                    }
+                    .foregroundStyle(WeatherTheme.heroText)
+                }
             }
 
-            Spacer()
+            Spacer(minLength: 8)
 
-            Image(systemName: store.snapshot.current.condition.symbolName)
-                .symbolRenderingMode(.multicolor)
-                .font(.title2)
+            VStack(alignment: .trailing, spacing: 2) {
+                HStack(spacing: 8) {
+                    ConditionIcon(
+                        condition: current.condition,
+                        isDaytime: WeatherDaylight.isDaytime(Date(), solar: store.snapshot.solar),
+                        size: 30
+                    )
+
+                    Text(WeatherFormatters.temperature(current.temperature, unitSystem: store.unitSystem))
+                        .font(.system(size: 40, weight: .semibold))
+                        .monospacedDigit()
+                }
+
+                Text(current.conditionDescription)
+                    .font(.subheadline.weight(.medium))
+                    .lineLimit(1)
+            }
+            .accessibilityElement(children: .combine)
         }
+        .foregroundStyle(WeatherTheme.heroText)
+        .heroTextShadow()
+        .padding(.top, 8)
+    }
+}
+
+private struct ForecastModePicker: View {
+    @Binding var selection: ForecastMode
+    @Namespace private var namespace
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(ForecastMode.allCases) { mode in
+                let isSelected = selection == mode
+
+                Button {
+                    withAnimation(.snappy(duration: 0.25)) {
+                        selection = mode
+                    }
+                } label: {
+                    Text(mode.title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(isSelected ? WeatherTheme.primaryText : WeatherTheme.secondaryText)
+                        .frame(maxWidth: .infinity, minHeight: 36)
+                        .background {
+                            if isSelected {
+                                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                                    .fill(Color.white.opacity(0.92))
+                                    .shadow(color: WeatherTheme.shadow, radius: 4, y: 1)
+                                    .matchedGeometryEffect(id: "selection", in: namespace)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
+            }
+        }
+        .padding(4)
+        .weatherSurface(cornerRadius: 15)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Forecast view")
     }
 }

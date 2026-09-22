@@ -18,7 +18,7 @@ struct HourlyForecastView: View {
         VStack(spacing: 16) {
             WeatherCard {
                 VStack(alignment: .leading, spacing: 16) {
-                    SectionHeader(title: "Hourly trends")
+                    SectionHeader(title: "Hourly Trends")
 
                     Picker("Metric", selection: $metric) {
                         ForEach(HourlyMetric.allCases) { metric in
@@ -49,7 +49,7 @@ struct HourlyForecastView: View {
 
             WeatherCard {
                 VStack(alignment: .leading, spacing: 14) {
-                    SectionHeader(title: "Hour by hour")
+                    SectionHeader(title: "Hour by Hour")
 
                     HourlyDetailRows(
                         items: visibleItems,

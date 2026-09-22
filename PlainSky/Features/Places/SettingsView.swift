@@ -3,13 +3,6 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(WeatherStore.self) private var store
 
-    private var appearanceBinding: Binding<AppAppearance> {
-        Binding(
-            get: { store.appearance },
-            set: { store.appearance = $0 }
-        )
-    }
-
     private var unitSystemBinding: Binding<WeatherUnitSystem> {
         Binding(
             get: { store.unitSystem },
@@ -19,23 +12,10 @@ struct SettingsView: View {
 
     var body: some View {
         ZStack {
-            WeatherBackdrop(style: .night)
+            WeatherBackdrop(style: .calm)
 
             ScrollView {
-                LazyVStack(spacing: 16) {
-                    WeatherCard {
-                        VStack(alignment: .leading, spacing: 14) {
-                            SectionHeader(title: "Appearance")
-
-                            Picker("Appearance", selection: appearanceBinding) {
-                                ForEach(AppAppearance.allCases) { appearance in
-                                    Text(appearance.title).tag(appearance)
-                                }
-                            }
-                            .pickerStyle(.segmented)
-                        }
-                    }
-
+                LazyVStack(spacing: WeatherTheme.sectionSpacing) {
                     WeatherCard {
                         VStack(alignment: .leading, spacing: 14) {
                             SectionHeader(title: "Display units")

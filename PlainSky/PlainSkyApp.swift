@@ -20,7 +20,7 @@ struct PlainSkyApp: App {
                 }
             }
             .environment(store)
-            .preferredColorScheme(store.preferredColorScheme)
+            .preferredColorScheme(.light)
         }
     }
 }

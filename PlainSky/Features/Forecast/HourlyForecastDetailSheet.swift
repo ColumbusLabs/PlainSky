@@ -9,7 +9,7 @@ struct HourlyForecastDetailSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                WeatherBackdrop(style: backdropStyle)
+                WeatherBackdrop(style: .calm)
 
                 ScrollView {
                     VStack(spacing: 16) {
@@ -146,13 +146,5 @@ struct HourlyForecastDetailSheet: View {
                 .multilineTextAlignment(.trailing)
         }
         .padding(.vertical, 10)
-    }
-
-    private var backdropStyle: WeatherBackdropStyle {
-        switch item.condition {
-        case .rain, .heavyRain, .thunderstorm: .rain
-        case .cloudy, .fog: .cloudy
-        default: .clear
-        }
     }
 }

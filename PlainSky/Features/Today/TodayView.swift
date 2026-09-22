@@ -4,31 +4,23 @@ struct TodayView: View {
     @Environment(WeatherStore.self) private var store
     @Environment(AppRouter.self) private var router
 
-    private var backdropStyle: WeatherBackdropStyle {
-        switch store.snapshot.current.condition {
-        case .rain, .heavyRain, .thunderstorm:
-            .rain
-        case .cloudy, .fog:
-            .cloudy
-        default:
-            .clear
-        }
-    }
-
     var body: some View {
         ZStack {
-            WeatherBackdrop(style: backdropStyle)
+            WeatherBackdrop(style: .current(for: store.snapshot))
 
             ScrollView {
-                LazyVStack(spacing: 16) {
-                    TodayLocationHeader()
+                LazyVStack(spacing: WeatherTheme.sectionSpacing) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        TodayLocationHeader()
+
+                        CurrentConditionsHero(
+                            current: store.snapshot.current,
+                            today: store.snapshot.daily.first
+                        )
+                    }
+                    .padding(.bottom, 10)
 
                     RefreshErrorBanner()
-
-                    CurrentConditionsHero(
-                        current: store.snapshot.current,
-                        today: store.snapshot.daily.first
-                    )
 
                     if store.snapshot.alerts.isEmpty,
                        let alertMessage = store.snapshot.availability(for: .alerts).message {
@@ -75,11 +67,11 @@ struct TodayView: View {
                         solar: store.snapshot.solar
                     )
 
-                    SourceSummaryCard(snapshot: store.snapshot)
+                    WeatherSourceFooter(snapshot: store.snapshot)
                 }
                 .padding(.horizontal, WeatherTheme.horizontalPadding)
-                .padding(.top, 8)
-                .padding(.bottom, 28)
+                .padding(.top, 4)
+                .padding(.bottom, 24)
             }
             .scrollIndicators(.hidden)
             .refreshable {
@@ -120,10 +112,7 @@ struct TodayView: View {
                 icon: "clock.badge.exclamationmark"
             )
         } else {
-            HourlyForecastStrip(
-                items: Array(store.snapshot.hourly.prefix(12)),
-                onSeeAll: router.showHourlyForecast
-            )
+            HourlyForecastStrip(items: Array(store.snapshot.hourly.prefix(12)))
         }
     }
 
@@ -139,7 +128,7 @@ struct TodayView: View {
             )
         } else {
             DailyForecastPreview(
-                items: Array(store.snapshot.daily.prefix(3)),
+                items: Array(store.snapshot.daily.prefix(5)),
                 onSeeAll: router.showDailyForecast
             )
         }
@@ -150,43 +139,34 @@ private struct TodayLocationHeader: View {
     @Environment(WeatherStore.self) private var store
 
     var body: some View {
-        HStack {
-            Menu {
-                ForEach(store.savedLocations) { location in
-                    Button {
-                        store.selectAndRefresh(location)
-                    } label: {
-                        Label(
-                            location.displayName,
-                            systemImage: location.isCurrentLocation ? "location.fill" : "mappin"
-                        )
-                    }
-                }
-            } label: {
-                HStack(spacing: 8) {
-                    VStack(alignment: .leading, spacing: 1) {
+        HStack(alignment: .top) {
+            LocationMenu {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
                         Text(store.snapshot.location.name)
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(WeatherTheme.primaryText)
+                            .font(.title.weight(.bold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
 
-                        if !store.snapshot.location.region.isEmpty {
-                            Text(store.snapshot.location.region)
-                                .font(.caption)
-                                .foregroundStyle(WeatherTheme.secondaryText)
-                        }
+                        Image(systemName: "chevron.down")
+                            .font(.headline.weight(.semibold))
                     }
 
-                    Image(systemName: "chevron.down")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(WeatherTheme.secondaryText)
+                    if !store.snapshot.location.region.isEmpty {
+                        Text(store.snapshot.location.region)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(WeatherTheme.heroSecondaryText)
+                    }
                 }
+                .foregroundStyle(WeatherTheme.heroText)
+                .heroTextShadow()
             }
 
-            Spacer()
+            Spacer(minLength: 12)
 
             if store.isRefreshing {
                 ProgressView()
-                    .tint(WeatherTheme.primaryText)
+                    .tint(WeatherTheme.heroText)
                     .frame(width: 40, height: 40)
                     .accessibilityLabel("Refreshing weather")
             } else {
@@ -194,29 +174,34 @@ private struct TodayLocationHeader: View {
                     AlertsView()
                 } label: {
                     ZStack(alignment: .topTrailing) {
-                        Image(systemName: "bell")
-                            .font(.system(size: 17, weight: .semibold))
+                        Image(systemName: "bell.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(WeatherTheme.heroText)
                             .frame(width: 40, height: 40)
-                            .background(.ultraThinMaterial, in: Circle())
-                            .foregroundStyle(WeatherTheme.primaryText)
+                            .background {
+                                Circle()
+                                    .fill(Color.white.opacity(0.24))
+                                    .overlay(Circle().strokeBorder(Color.white.opacity(0.4), lineWidth: 1))
+                            }
 
-                        if !store.snapshot.alerts.isEmpty {
+                        if let badgeColor {
                             Circle()
-                                .fill(.red)
-                                .frame(width: 9, height: 9)
-                                .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
-                        } else if store.snapshot.availability(for: .alerts).message != nil {
-                            Circle()
-                                .fill(.orange)
-                                .frame(width: 9, height: 9)
-                                .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
+                                .fill(badgeColor)
+                                .frame(width: 10, height: 10)
+                                .overlay(Circle().stroke(Color.white, lineWidth: 1.5))
                         }
                     }
                 }
                 .accessibilityLabel(alertAccessibilityLabel)
             }
         }
-        .padding(.top, 4)
+        .padding(.top, 8)
+    }
+
+    private var badgeColor: Color? {
+        if !store.snapshot.alerts.isEmpty { return .red }
+        if store.snapshot.availability(for: .alerts).message != nil { return .orange }
+        return nil
     }
 
     private var alertAccessibilityLabel: String {

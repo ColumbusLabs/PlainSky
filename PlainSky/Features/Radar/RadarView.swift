@@ -14,7 +14,7 @@ struct RadarView: View {
 
     var body: some View {
         ZStack {
-            WeatherBackdrop(style: .night)
+            WeatherBackdrop(style: .calm)
                 .zIndex(0)
 
             RadarMapView(

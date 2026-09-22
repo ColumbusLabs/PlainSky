@@ -3,7 +3,7 @@ import XCTest
 
 @MainActor
 final class WeatherPreferencesTests: XCTestCase {
-    func testLocationsAppearanceAndUnitsRoundTrip() throws {
+    func testLocationsAndUnitsRoundTrip() throws {
         let suite = "WeatherPreferencesTests-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
@@ -18,12 +18,10 @@ final class WeatherPreferencesTests: XCTestCase {
 
         preferences.saveSavedLocations([location])
         preferences.saveLastLocation(location)
-        preferences.saveAppearance(.dark)
         preferences.saveUnitSystem(.metric)
 
         XCTAssertEqual(preferences.loadSavedLocations(), [location])
         XCTAssertEqual(preferences.loadLastLocation(), location)
-        XCTAssertEqual(preferences.loadAppearance(), .dark)
         XCTAssertEqual(preferences.loadUnitSystem(), .metric)
     }
 
@@ -36,7 +34,6 @@ final class WeatherPreferencesTests: XCTestCase {
 
         XCTAssertNil(preferences.loadSavedLocations())
         XCTAssertNil(preferences.loadLastLocation())
-        XCTAssertNil(preferences.loadAppearance())
         XCTAssertNil(preferences.loadUnitSystem())
         XCTAssertNil(preferences.loadCachedSnapshot())
     }

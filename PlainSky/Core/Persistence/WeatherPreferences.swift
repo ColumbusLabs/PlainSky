@@ -7,7 +7,6 @@ struct WeatherPreferences {
     private enum Key {
         static let savedLocations = "weather.savedLocations"
         static let lastLocation = "weather.lastLocation"
-        static let appearance = "weather.appearance"
         static let unitSystem = "weather.unitSystem"
         static let cachedSnapshot = "weather.cachedSnapshot"
     }
@@ -38,15 +37,6 @@ struct WeatherPreferences {
     func saveLastLocation(_ location: WeatherLocation) {
         guard let data = try? encoder.encode(location) else { return }
         defaults.set(data, forKey: Key.lastLocation)
-    }
-
-    func loadAppearance() -> AppAppearance? {
-        guard let rawValue = defaults.string(forKey: Key.appearance) else { return nil }
-        return AppAppearance(rawValue: rawValue)
-    }
-
-    func saveAppearance(_ appearance: AppAppearance) {
-        defaults.set(appearance.rawValue, forKey: Key.appearance)
     }
 
     func loadUnitSystem() -> WeatherUnitSystem? {

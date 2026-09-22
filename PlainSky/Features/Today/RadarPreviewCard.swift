@@ -5,110 +5,70 @@ struct RadarPreviewCard: View {
     let availability: WeatherProductAvailability
     var onOpen: (() -> Void)?
 
+    @State private var latestFrame: RadarFrame?
+
+    private let radarProvider = NOAARadarProvider()
+
+    private var cardShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: WeatherTheme.cardRadius, style: .continuous)
+    }
+
     var body: some View {
         Button {
             onOpen?()
         } label: {
-            WeatherCard {
-                VStack(alignment: .leading, spacing: 14) {
-                    SectionHeader(
-                        title: "Radar",
-                        actionTitle: onOpen == nil ? nil : "Open",
-                        action: onOpen
-                    )
+            HStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Live Radar")
+                        .font(.headline)
+                        .foregroundStyle(WeatherTheme.primaryText)
 
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        Color(red: 0.05, green: 0.12, blue: 0.18),
-                                        Color(red: 0.08, green: 0.20, blue: 0.24)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(availability.message == nil ? "See what's happening near you" : "Radar preview unavailable")
+                            .font(.caption)
+                            .foregroundStyle(WeatherTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                        RadarGlyph()
-                            .padding(24)
-
-                        VStack {
-                            Spacer()
-
-                            HStack {
-                                Label(location.name, systemImage: "location.fill")
-                                    .font(.caption.weight(.semibold))
-
-                                Spacer()
-
-                                Label("NOAA", systemImage: "antenna.radiowaves.left.and.right")
-                                    .font(.caption.weight(.semibold))
-                            }
-                            .foregroundStyle(.white.opacity(0.82))
-                            .padding(14)
-                        }
-
-                        if let message = availability.message {
-                            VStack {
-                                HStack(spacing: 7) {
-                                    Image(systemName: "info.circle.fill")
-                                    Text(message)
-                                        .lineLimit(1)
-                                }
-                                .font(.caption2.weight(.semibold))
-                                .foregroundStyle(.white.opacity(0.88))
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 7)
-                                .background(.black.opacity(0.32), in: Capsule())
-
-                                Spacer()
-                            }
-                            .padding(10)
+                        if onOpen != nil {
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(WeatherTheme.tertiaryText)
                         }
                     }
-                    .frame(height: 150)
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 }
+                .padding(WeatherTheme.cardPadding)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                RadarMapView(
+                    location: location,
+                    frame: latestFrame,
+                    recenterToken: 0,
+                    isInteractive: false
+                )
+                .frame(maxWidth: .infinity)
+                .accessibilityHidden(true)
             }
+            .frame(height: 104)
+            .clipShape(cardShape)
+            .weatherSurface()
+            .overlay(cardShape.strokeBorder(WeatherTheme.cardStroke, lineWidth: 1))
         }
         .buttonStyle(.plain)
         .disabled(onOpen == nil)
         .accessibilityLabel("Open radar for \(location.displayName)")
-    }
-}
-
-private struct RadarGlyph: View {
-    var body: some View {
-        GeometryReader { proxy in
-            let size = min(proxy.size.width, proxy.size.height)
-
-            ZStack {
-                ForEach([0.32, 0.58, 0.84], id: \.self) { scale in
-                    Circle()
-                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
-                        .frame(width: size * scale, height: size * scale)
-                }
-
-                Path { path in
-                    path.move(to: CGPoint(x: proxy.size.width / 2, y: 0))
-                    path.addLine(to: CGPoint(x: proxy.size.width / 2, y: proxy.size.height))
-                    path.move(to: CGPoint(x: 0, y: proxy.size.height / 2))
-                    path.addLine(to: CGPoint(x: proxy.size.width, y: proxy.size.height / 2))
-                }
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-
-                Circle()
-                    .fill(WeatherTheme.accent)
-                    .frame(width: 8, height: 8)
-                    .shadow(color: WeatherTheme.accent.opacity(0.8), radius: 8)
-
-                Image(systemName: "cloud.rain.fill")
-                    .symbolRenderingMode(.multicolor)
-                    .font(.system(size: 34))
-                    .offset(x: size * 0.23, y: -size * 0.18)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .task(id: location.id) {
+            await loadLatestFrame()
         }
+    }
+
+    @MainActor
+    private func loadLatestFrame() async {
+        guard availability.message == nil else {
+            latestFrame = nil
+            return
+        }
+
+        let frames = (try? await radarProvider.frames(for: location)) ?? []
+        latestFrame = frames.max { $0.timestamp < $1.timestamp }
     }
 }

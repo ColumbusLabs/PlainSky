@@ -87,6 +87,36 @@ enum WeatherFormatters {
         date.formatted(date: .omitted, time: .shortened)
     }
 
+    /// Hour without minutes, e.g. "11 AM".
+    static func hourLabel(_ date: Date) -> String {
+        date.formatted(.dateTime.hour())
+    }
+
+    static func monthDay(_ date: Date) -> String {
+        date.formatted(.dateTime.month(.abbreviated).day())
+    }
+
+    /// Short enough for narrow columns: "Today", "Tonight", or an abbreviated weekday.
+    static func compactDay(
+        _ date: Date,
+        hasDaytimePeriod: Bool
+    ) -> String {
+        if Calendar.autoupdatingCurrent.isDateInToday(date) {
+            return hasDaytimePeriod ? "Today" : "Tonight"
+        }
+        return date.formatted(.dateTime.weekday(.abbreviated))
+    }
+
+    static func uvCategory(_ index: Int) -> String {
+        switch index {
+        case ..<3: "Low"
+        case 3..<6: "Moderate"
+        case 6..<8: "High"
+        case 8..<11: "Very High"
+        default: "Extreme"
+        }
+    }
+
     static func shortDay(_ date: Date) -> String {
         let calendar = Calendar.autoupdatingCurrent
         if calendar.isDateInToday(date) { return "Today" }
