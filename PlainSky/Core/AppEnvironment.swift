@@ -73,11 +73,8 @@ enum AppEnvironment {
         from preferences: WeatherPreferences,
         now: Date = Date()
     ) -> WeatherSnapshot? {
-        guard let cached = preferences.loadCachedSnapshot() else { return nil }
-
-        let cacheAge = now.timeIntervalSince(cached.fetchedAt)
-        guard cacheAge >= 0,
-              cacheAge <= maximumRestorableSnapshotAge else {
+        guard let cached = preferences.loadCachedSnapshot(),
+              isRestorable(cached, now: now) else {
             return nil
         }
 
@@ -87,6 +84,11 @@ enum AppEnvironment {
         }
 
         return cached.restoringFromCache()
+    }
+
+    static func isRestorable(_ snapshot: WeatherSnapshot, now: Date = Date()) -> Bool {
+        let cacheAge = now.timeIntervalSince(snapshot.fetchedAt)
+        return cacheAge >= 0 && cacheAge <= maximumRestorableSnapshotAge
     }
 
     static var appVersion: String {

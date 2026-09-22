@@ -25,8 +25,6 @@ struct ForecastView: View {
                     RefreshErrorBanner()
 
                     forecastContent
-
-                    WeatherSourceFooter(snapshot: store.snapshot)
                 }
                 .padding(.horizontal, WeatherTheme.horizontalPadding)
                 .padding(.top, 8)

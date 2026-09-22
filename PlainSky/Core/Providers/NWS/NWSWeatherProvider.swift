@@ -20,13 +20,15 @@ struct NWSWeatherProvider: PrimaryWeatherProviding {
         async let forecastResponse = try? client.forecast(url: properties.forecast)
         async let hourlyResponse = try? client.hourlyForecast(url: properties.forecastHourly)
         async let gridResponse = try? client.gridData(url: properties.forecastGridData)
-        async let stationCollection = try? client.stations(url: properties.observationStations)
         async let alertCollection = try? client.activeAlerts(for: location)
+        async let currentObservation = currentConditions(
+            stationsURL: properties.observationStations,
+            fetchedAt: fetchedAt
+        )
 
         let dailyResponse = await forecastResponse
         let hourlyForecastResponse = await hourlyResponse
         let grid = await gridResponse
-        let stations = await stationCollection
         let alertsResponse = await alertCollection
 
         let sourceName = "NWS \(properties.gridId) forecast grid"
@@ -83,10 +85,7 @@ struct NWSWeatherProvider: PrimaryWeatherProviding {
             )
         }
 
-        let current = await currentConditions(
-            stations: stations?.features.map(\.properties) ?? [],
-            fetchedAt: fetchedAt
-        )
+        let current = await currentObservation
 
         let currentAvailability: WeatherProductAvailability = current == nil
             ? .unavailable("No fresh usable NWS station observation was available.")
@@ -106,27 +105,69 @@ struct NWSWeatherProvider: PrimaryWeatherProviding {
         )
     }
 
+    private static let parallelStationCount = 3
+    private static let maximumStationCount = 5
+
     private func currentConditions(
-        stations: [NWSStationProperties],
+        stationsURL: URL,
         fetchedAt: Date
     ) async -> CurrentConditions? {
-        for station in stations.prefix(5) {
-            guard let observation = try? await client.latestObservation(
-                stationIdentifier: station.stationIdentifier
-            ) else {
-                continue
+        guard let collection = try? await client.stations(url: stationsURL) else {
+            return nil
+        }
+
+        let stations = Array(
+            collection.features.map(\.properties).prefix(Self.maximumStationCount)
+        )
+        let nearest = Array(stations.prefix(Self.parallelStationCount))
+
+        // Nearest stations are fetched together, but the closest usable one still wins.
+        let nearestResults = await withTaskGroup(
+            of: (Int, CurrentConditions?).self
+        ) { group in
+            for (index, station) in nearest.enumerated() {
+                group.addTask {
+                    (index, await observationConditions(station: station, fetchedAt: fetchedAt))
+                }
             }
 
-            if let current = NWSMapper.currentConditions(
-                station: station,
-                observation: observation,
-                fetchedAt: fetchedAt,
-                now: fetchedAt
-            ) {
+            var results = [Int: CurrentConditions]()
+            for await (index, current) in group {
+                results[index] = current
+            }
+            return results
+        }
+
+        for index in nearest.indices {
+            if let current = nearestResults[index] {
+                return current
+            }
+        }
+
+        for station in stations.dropFirst(nearest.count) {
+            if let current = await observationConditions(station: station, fetchedAt: fetchedAt) {
                 return current
             }
         }
 
         return nil
+    }
+
+    private func observationConditions(
+        station: NWSStationProperties,
+        fetchedAt: Date
+    ) async -> CurrentConditions? {
+        guard let observation = try? await client.latestObservation(
+            stationIdentifier: station.stationIdentifier
+        ) else {
+            return nil
+        }
+
+        return NWSMapper.currentConditions(
+            station: station,
+            observation: observation,
+            fetchedAt: fetchedAt,
+            now: fetchedAt
+        )
     }
 }

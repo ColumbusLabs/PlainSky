@@ -17,7 +17,6 @@ struct WeatherMetricDetailSheet: View {
                     VStack(spacing: 16) {
                         hero
                         detailCard
-                        sourceCard
                     }
                     .padding(WeatherTheme.horizontalPadding)
                 }
@@ -86,20 +85,6 @@ struct WeatherMetricDetailSheet: View {
                             .overlay(WeatherTheme.divider)
                     }
                 }
-            }
-        }
-    }
-
-    private var sourceCard: some View {
-        WeatherCard {
-            VStack(alignment: .leading, spacing: 9) {
-                SectionHeader(title: "Source")
-                SourceFreshnessView(metadata: source)
-                WeatherProviderAttributionView(metadata: source)
-
-                Text("These are provider-supplied weather values. Unit changes are display conversions only.")
-                    .font(.caption)
-                    .foregroundStyle(WeatherTheme.tertiaryText)
             }
         }
     }
@@ -231,15 +216,6 @@ struct WeatherMetricDetailSheet: View {
                     )
                 )
             ]
-        }
-    }
-
-    private var source: WeatherSourceMetadata {
-        switch metric {
-        case .uv, .sun:
-            solar?.source ?? current.source
-        case .wind, .humidity, .visibility, .pressure:
-            current.source
         }
     }
 }

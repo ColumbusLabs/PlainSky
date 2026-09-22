@@ -33,6 +33,8 @@ struct SettingsView: View {
                         }
                     }
 
+                    DataSourcesCard(snapshot: store.snapshot)
+
                     NavigationLink {
                         SourcePolicyView()
                     } label: {

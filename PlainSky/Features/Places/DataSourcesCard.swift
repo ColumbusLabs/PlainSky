@@ -1,63 +1,62 @@
 import SwiftUI
 
-struct WeatherSourceFooter: View {
-    let primary: WeatherSourceMetadata
-    let attributionCandidates: [WeatherSourceMetadata]
+struct DataSourcesCard: View {
+    let snapshot: WeatherSnapshot
 
-    init(primary: WeatherSourceMetadata, attributionCandidates: [WeatherSourceMetadata]) {
-        self.primary = primary
-        self.attributionCandidates = attributionCandidates
-    }
-
-    init(snapshot: WeatherSnapshot) {
-        self.init(
-            primary: snapshot.current.source,
-            attributionCandidates: [
-                snapshot.current.source,
-                snapshot.minutePrecipitation.first?.source,
-                snapshot.solar?.source,
-                snapshot.hourly.first?.source,
-                snapshot.daily.first?.source
-            ].compactMap { $0 }
-        )
-    }
-
-    /// Apple requires its Weather mark and legal link wherever WeatherKit data is shown.
+    /// Apple requires its Weather mark and legal link to be shown when WeatherKit data is used.
     private var weatherKitSource: WeatherSourceMetadata? {
-        ([primary] + attributionCandidates).first {
-            $0.provider == .weatherKit && $0.attributionLegalURL != nil
-        }
+        [
+            snapshot.current.source,
+            snapshot.minutePrecipitation.first?.source,
+            snapshot.solar?.source,
+            snapshot.hourly.first?.source,
+            snapshot.daily.first?.source
+        ]
+        .compactMap { $0 }
+        .first { $0.provider == .weatherKit && $0.attributionLegalURL != nil }
     }
 
     var body: some View {
-        VStack(spacing: 10) {
-            NavigationLink {
-                DiagnosticsView()
-            } label: {
-                HStack(spacing: 6) {
-                    SourceFreshnessView(metadata: primary)
+        WeatherCard {
+            VStack(alignment: .leading, spacing: 12) {
+                SectionHeader(title: "Data Sources")
 
-                    Image(systemName: "chevron.right")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(WeatherTheme.tertiaryText)
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background {
-                    Capsule()
-                        .fill(WeatherTheme.insetFill)
-                        .overlay(Capsule().strokeBorder(WeatherTheme.insetStroke, lineWidth: 1))
-                }
-            }
-            .buttonStyle(.plain)
-            .accessibilityHint("Opens data sources and freshness details")
+                SourceRow(title: "Current conditions", metadata: snapshot.current.source)
 
-            if let weatherKitSource {
-                WeatherProviderAttributionView(metadata: weatherKitSource)
-                    .frame(maxWidth: 240)
+                if let forecastSource = snapshot.hourly.first?.source {
+                    Divider().overlay(WeatherTheme.divider)
+                    SourceRow(title: "Forecast", metadata: forecastSource)
+                }
+
+                if let minuteSource = snapshot.minutePrecipitation.first?.source {
+                    Divider().overlay(WeatherTheme.divider)
+                    SourceRow(title: "Next-hour precipitation", metadata: minuteSource)
+                }
+
+                Text("Forecasts, observations, and alerts from the National Weather Service. Radar from NOAA.")
+                    .font(.caption)
+                    .foregroundStyle(WeatherTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let weatherKitSource {
+                    WeatherProviderAttributionView(metadata: weatherKitSource)
+                }
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 4)
+    }
+}
+
+private struct SourceRow: View {
+    let title: String
+    let metadata: WeatherSourceMetadata
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(WeatherTheme.primaryText)
+
+            SourceFreshnessView(metadata: metadata)
+        }
     }
 }

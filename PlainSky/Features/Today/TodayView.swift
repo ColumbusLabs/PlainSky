@@ -66,8 +66,6 @@ struct TodayView: View {
                         current: store.snapshot.current,
                         solar: store.snapshot.solar
                     )
-
-                    WeatherSourceFooter(snapshot: store.snapshot)
                 }
                 .padding(.horizontal, WeatherTheme.horizontalPadding)
                 .padding(.top, 4)

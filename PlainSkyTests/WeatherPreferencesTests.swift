@@ -38,6 +38,25 @@ final class WeatherPreferencesTests: XCTestCase {
         XCTAssertNil(preferences.loadCachedSnapshot())
     }
 
+    func testCachedSnapshotsAreKeptPerLocation() throws {
+        let suite = "WeatherPreferencesPerLocationTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let preferences = WeatherPreferences(defaults: defaults)
+        let first = MockWeather.snapshot
+        var second = MockWeather.snapshot
+        second.location = WeatherLocation(name: "Pensacola", region: "Florida", latitude: 30.4, longitude: -87.2)
+
+        preferences.saveCachedSnapshot(first)
+        preferences.saveCachedSnapshot(second)
+
+        XCTAssertEqual(preferences.loadCachedSnapshot()?.location.id, second.location.id)
+        XCTAssertEqual(preferences.loadCachedSnapshot(for: first.location.id)?.location.id, first.location.id)
+        XCTAssertEqual(preferences.loadCachedSnapshot(for: second.location.id)?.location.id, second.location.id)
+        XCTAssertNil(preferences.loadCachedSnapshot(for: UUID()))
+    }
+
     func testCachedSnapshotRoundTrips() throws {
         let suite = "WeatherPreferencesSnapshotTests-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

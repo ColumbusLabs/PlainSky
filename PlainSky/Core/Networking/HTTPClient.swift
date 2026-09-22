@@ -4,10 +4,24 @@ protocol HTTPClient {
     func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse)
 }
 
+extension URLSession {
+    /// Sized so NWS forecast and grid responses (~150–200 KB) fit and their
+    /// Cache-Control lifetimes are honored; the shared session's cache is too small.
+    static let weather: URLSession = {
+        let configuration = URLSessionConfiguration.default
+        configuration.urlCache = URLCache(
+            memoryCapacity: 16 * 1024 * 1024,
+            diskCapacity: 64 * 1024 * 1024
+        )
+        configuration.requestCachePolicy = .useProtocolCachePolicy
+        return URLSession(configuration: configuration)
+    }()
+}
+
 struct URLSessionHTTPClient: HTTPClient {
     private let session: URLSession
 
-    init(session: URLSession = .shared) {
+    init(session: URLSession = .weather) {
         self.session = session
     }
 

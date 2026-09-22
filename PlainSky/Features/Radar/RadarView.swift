@@ -82,7 +82,7 @@ struct RadarView: View {
             playback.replaceFrames(frames)
 
             if frames.isEmpty {
-                radarError = "NOAA radar did not return any recent frames."
+                radarError = "Radar did not return any recent frames."
             }
         } catch {
             radarError = error.localizedDescription
@@ -111,13 +111,6 @@ private struct RadarHeader: View {
             }
 
             Spacer()
-
-            Text("NOAA")
-                .font(.caption2.weight(.bold))
-                .tracking(0.7)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 7)
-                .background(.thinMaterial, in: Capsule())
 
             Button(action: onRefresh) {
                 Group {
@@ -155,7 +148,7 @@ private struct RadarLoadingCard: View {
                 .tint(WeatherTheme.accent)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text("Loading NOAA radar")
+                Text("Loading radar")
                     .font(.subheadline.weight(.semibold))
 
                 Text("Finding the latest advertised radar frames.")

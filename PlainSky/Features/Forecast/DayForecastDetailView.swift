@@ -64,11 +64,6 @@ struct DayForecastDetailView: View {
                     if !matchingHours.isEmpty {
                         hoursCard
                     }
-
-                    WeatherSourceFooter(
-                        primary: day.source,
-                        attributionCandidates: matchingHours.prefix(1).map(\.source)
-                    )
                 }
                 .padding(.horizontal, WeatherTheme.horizontalPadding)
                 .padding(.top, 4)

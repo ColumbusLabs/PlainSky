@@ -72,7 +72,7 @@ struct PlacesView: View {
                                         .font(.headline)
                                         .foregroundStyle(WeatherTheme.primaryText)
 
-                                    Text("Units, sources, privacy, and diagnostics")
+                                    Text("Units, data sources, privacy, and diagnostics")
                                         .font(.caption)
                                         .foregroundStyle(WeatherTheme.secondaryText)
                                 }

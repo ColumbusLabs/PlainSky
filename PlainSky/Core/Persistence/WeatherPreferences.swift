@@ -9,6 +9,7 @@ struct WeatherPreferences {
         static let lastLocation = "weather.lastLocation"
         static let unitSystem = "weather.unitSystem"
         static let cachedSnapshot = "weather.cachedSnapshot"
+        static let cachedSnapshotsByLocation = "weather.cachedSnapshotsByLocation"
     }
 
     private let defaults: UserDefaults
@@ -53,8 +54,35 @@ struct WeatherPreferences {
         return try? decoder.decode(WeatherSnapshot.self, from: data)
     }
 
+    func loadCachedSnapshot(for locationID: UUID) -> WeatherSnapshot? {
+        loadCachedSnapshotsByLocation()[locationID.uuidString]
+    }
+
     func saveCachedSnapshot(_ snapshot: WeatherSnapshot) {
         guard let data = try? encoder.encode(snapshot) else { return }
         defaults.set(data, forKey: Key.cachedSnapshot)
+
+        var byLocation = loadCachedSnapshotsByLocation()
+        byLocation[snapshot.location.id.uuidString] = snapshot
+
+        if byLocation.count > Self.maximumCachedLocations {
+            let newest = byLocation
+                .sorted { $0.value.fetchedAt > $1.value.fetchedAt }
+                .prefix(Self.maximumCachedLocations)
+            byLocation = Dictionary(uniqueKeysWithValues: newest.map { ($0.key, $0.value) })
+        }
+
+        guard let byLocationData = try? encoder.encode(byLocation) else { return }
+        defaults.set(byLocationData, forKey: Key.cachedSnapshotsByLocation)
+    }
+
+    private static let maximumCachedLocations = 5
+
+    private func loadCachedSnapshotsByLocation() -> [String: WeatherSnapshot] {
+        guard let data = defaults.data(forKey: Key.cachedSnapshotsByLocation),
+              let decoded = try? decoder.decode([String: WeatherSnapshot].self, from: data) else {
+            return [:]
+        }
+        return decoded
     }
 }

@@ -65,22 +65,6 @@ struct HourlyForecastDetailSheet: View {
                                 )
                             }
                         }
-
-                        WeatherCard {
-                            VStack(alignment: .leading, spacing: 9) {
-                                SectionHeader(title: "Forecast source")
-                                SourceFreshnessView(metadata: item.source)
-
-                                if let from = item.source.validFrom,
-                                   let to = item.source.validTo {
-                                    Text(
-                                        "Valid \(from.formatted(date: .omitted, time: .shortened))–\(to.formatted(date: .omitted, time: .shortened))"
-                                    )
-                                    .font(.caption)
-                                    .foregroundStyle(WeatherTheme.tertiaryText)
-                                }
-                            }
-                        }
                     }
                     .padding(WeatherTheme.horizontalPadding)
                 }

@@ -39,6 +39,49 @@ final class WeatherStoreTests: XCTestCase {
         XCTAssertNil(preferences.loadCachedSnapshot())
     }
 
+    func testSelectingPlaceWithRecentCacheShowsItWithoutPlaceholder() throws {
+        let suite = "WeatherStoreSelectCacheTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let preferences = WeatherPreferences(defaults: defaults)
+        let other = WeatherLocation(name: "Pensacola", region: "Florida", latitude: 30.4213, longitude: -87.2169)
+        var cached = MockWeather.snapshot
+        cached.location = other
+        cached.current.temperature = 88
+        preferences.saveCachedSnapshot(cached)
+
+        let store = WeatherStore(
+            repository: PreviewWeatherRepository(),
+            preferences: preferences,
+            masksStaleLocationData: true,
+            cachesSnapshots: true
+        )
+
+        store.select(other)
+
+        XCTAssertFalse(store.isShowingPlaceholderData)
+        XCTAssertEqual(store.snapshot.location.id, other.id)
+        XCTAssertEqual(store.snapshot.current.temperature, 88)
+    }
+
+    func testSelectingPlaceWithoutCacheShowsPlaceholder() throws {
+        let suite = "WeatherStoreSelectNoCacheTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let store = WeatherStore(
+            repository: PreviewWeatherRepository(),
+            preferences: WeatherPreferences(defaults: defaults),
+            masksStaleLocationData: true,
+            cachesSnapshots: true
+        )
+
+        store.select(WeatherLocation(name: "Elsewhere", region: "Ohio", latitude: 39.9, longitude: -83.0))
+
+        XCTAssertTrue(store.isShowingPlaceholderData)
+    }
+
     func testRestoringFromCacheDropsTimeSensitiveProducts() {
         let restored = MockWeather.snapshot.restoringFromCache()
 

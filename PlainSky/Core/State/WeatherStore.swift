@@ -127,12 +127,30 @@ final class WeatherStore {
         invalidateOutstandingLoad()
 
         if masksStaleLocationData && snapshot.location.id != location.id {
-            isShowingPlaceholderData = true
             lastRefreshError = nil
+
+            if let cached = restorableCachedSnapshot(for: location) {
+                snapshot = cached
+                isShowingPlaceholderData = false
+            } else {
+                isShowingPlaceholderData = true
+            }
         }
 
         snapshot.location = location
         preferences.saveLastLocation(location)
+    }
+
+    private func restorableCachedSnapshot(for location: WeatherLocation) -> WeatherSnapshot? {
+        guard cachesSnapshots,
+              let cached = preferences.loadCachedSnapshot(for: location.id),
+              abs(cached.location.latitude - location.latitude) < 0.01,
+              abs(cached.location.longitude - location.longitude) < 0.01,
+              AppEnvironment.isRestorable(cached) else {
+            return nil
+        }
+
+        return cached.restoringFromCache()
     }
 
     func selectAndRefresh(_ location: WeatherLocation) {
