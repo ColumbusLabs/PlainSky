@@ -3,13 +3,9 @@ import SwiftUI
 struct AlertsView: View {
     @Environment(WeatherStore.self) private var store
 
-    private var alertAvailability: WeatherProductAvailability {
-        store.snapshot.availability(for: .alerts)
-    }
-
     var body: some View {
         ZStack {
-            WeatherBackdrop(style: store.snapshot.alerts.isEmpty ? .clear : .rain)
+            WeatherBackdrop(style: store.screenState.alerts.value?.isEmpty == false ? .rain : .clear)
 
             ScrollView {
                 LazyVStack(spacing: 14) {
@@ -18,20 +14,20 @@ struct AlertsView: View {
                             .accessibilityHint(error)
                     }
 
-                    if alertAvailability.isLoading {
+                    if store.screenState.alerts.isLoading {
                         checkingState
-                    } else if let message = alertAvailability.message {
+                    } else if let message = store.screenState.alerts.message {
                         WeatherUnavailableCard(
                             title: "Alert status unavailable",
                             message: message,
                             icon: "exclamationmark.shield.fill"
                         )
-                    } else if store.snapshot.alerts.isEmpty {
+                    } else if store.screenState.alerts.value?.isEmpty != false {
                         emptyState
                     } else {
                         activeAlertHeader
 
-                        ForEach(store.snapshot.alerts) { alert in
+                        ForEach(store.screenState.alerts.value ?? []) { alert in
                             NavigationLink {
                                 AlertDetailView(alert: alert)
                             } label: {
@@ -59,13 +55,13 @@ struct AlertsView: View {
         WeatherCard {
             VStack(alignment: .leading, spacing: 7) {
                 Label(
-                    "\(store.snapshot.alerts.count) active \(store.snapshot.alerts.count == 1 ? "alert" : "alerts")",
+                    "\(store.screenState.alerts.value?.count ?? 0) active \((store.screenState.alerts.value?.count ?? 0) == 1 ? "alert" : "alerts")",
                     systemImage: "exclamationmark.triangle.fill"
                 )
                 .font(.headline)
                 .foregroundStyle(WeatherTheme.primaryText)
 
-                Text(store.snapshot.location.displayName)
+                Text(store.screenState.location.displayName)
                     .font(.subheadline)
                     .foregroundStyle(WeatherTheme.secondaryText)
 
@@ -105,7 +101,7 @@ struct AlertsView: View {
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(WeatherTheme.primaryText)
 
-                    Text("The latest successful National Weather Service alert check returned no active alerts for \(store.snapshot.location.displayName).")
+                    Text("The latest successful National Weather Service alert check returned no active alerts for \(store.screenState.location.displayName).")
                         .font(.subheadline)
                         .foregroundStyle(WeatherTheme.secondaryText)
                         .multilineTextAlignment(.center)

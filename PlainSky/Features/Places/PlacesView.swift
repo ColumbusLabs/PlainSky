@@ -210,7 +210,8 @@ struct PlacesView: View {
                     } label: {
                         PlaceRow(
                             location: location,
-                            isSelected: location.id == store.snapshot.location.id
+                            isSelected: WeatherRequestLocationKey(location)
+                                == WeatherRequestLocationKey(store.screenState.location)
                         )
                     }
                     .buttonStyle(.plain)

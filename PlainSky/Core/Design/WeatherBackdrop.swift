@@ -34,6 +34,17 @@ enum WeatherBackdropStyle {
         )
     }
 
+    static func current(
+        for state: WeatherScreenState,
+        at date: Date = Date()
+    ) -> WeatherBackdropStyle {
+        guard let current = state.current.value else { return .calm }
+        return forConditions(
+            current.condition,
+            isDaytime: WeatherDaylight.isDaytime(date, solar: state.solarEvents.value)
+        )
+    }
+
     fileprivate var imageName: String? {
         switch self {
         case .clear, .cloudy, .rain: "SkyDay"

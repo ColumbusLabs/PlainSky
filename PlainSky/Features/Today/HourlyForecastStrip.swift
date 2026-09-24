@@ -37,7 +37,10 @@ struct HourlyForecastStrip: View {
 
             ConditionIcon(
                 condition: item.condition,
-                isDaytime: WeatherDaylight.isDaytime(item.date, solar: store.snapshot.solar),
+                isDaytime: WeatherDaylight.isDaytime(
+                    item.date,
+                    solar: store.screenState.solarEvents.value
+                ),
                 size: 22
             )
             .frame(height: 26)

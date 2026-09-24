@@ -109,6 +109,9 @@ struct WeatherSourceMetadata: Hashable, Codable, Sendable {
     var attributionLegalURL: URL? = nil
     var attributionMarkLightURL: URL? = nil
     var attributionMarkDarkURL: URL? = nil
+    /// The time this exact product was validated with its provider. This is kept
+    /// separate from `fetchedAt`, which may describe when a bundle was assembled.
+    var validatedAt: Date? = nil
 
     var isExpired: Bool {
         guard let expiresAt else { return false }

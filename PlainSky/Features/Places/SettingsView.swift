@@ -33,7 +33,7 @@ struct SettingsView: View {
                         }
                     }
 
-                    DataSourcesCard(snapshot: store.snapshot)
+                    DataSourcesCard(state: store.screenState)
 
                     NavigationLink {
                         SourcePolicyView()

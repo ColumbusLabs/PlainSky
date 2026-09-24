@@ -18,8 +18,8 @@ enum AppDataMode: String, Sendable {
 }
 
 enum AppEnvironment {
-    /// Cached weather is useful for launch continuity, but should not become an
-    /// indefinite source of weather data when a provider is unavailable.
+    /// Retained only for preview and legacy snapshot compatibility tests. Live
+    /// startup no longer calls this policy or restores weather values.
     static let maximumRestorableSnapshotAge: TimeInterval = 6 * 60 * 60
 
     static var dataMode: AppDataMode {
@@ -45,45 +45,31 @@ enum AppEnvironment {
             return WeatherStore(repository: PreviewWeatherRepository())
 
         case .liveNWS, .liveNWSWeatherKit:
-            let preferences = WeatherPreferences.live
-            var initialSnapshot = MockWeather.snapshot
-            let restoredSnapshot = restorableSnapshot(from: preferences)
-
-            if let restoredSnapshot {
-                initialSnapshot = restoredSnapshot
-            } else {
-                initialSnapshot.fetchedAt = .distantPast
-            }
-
-            return WeatherStore(
-                repository: makeLiveRepository(
-                    includeWeatherKit: dataMode == .liveNWSWeatherKit
-                ),
-                snapshot: initialSnapshot,
-                preferences: preferences,
-                isShowingPlaceholderData: restoredSnapshot == nil,
-                masksStaleLocationData: true,
-                cachesSnapshots: true
+            return makeLiveWeatherStore(
+                includeWeatherKit: dataMode == .liveNWSWeatherKit,
+                preferences: .live
             )
         }
     }
 
     @MainActor
-    static func restorableSnapshot(
-        from preferences: WeatherPreferences,
-        now: Date = Date()
-    ) -> WeatherSnapshot? {
-        guard let cached = preferences.loadCachedSnapshot(),
-              isRestorable(cached, now: now) else {
-            return nil
-        }
+    static func makeLiveWeatherStore(
+        includeWeatherKit: Bool,
+        preferences: WeatherPreferences
+    ) -> WeatherStore {
+        let selectedLocation = preferences.loadLastLocation()
+            ?? MockWeather.snapshot.location
+        var compatibilitySnapshot = MockWeather.snapshot
+        compatibilitySnapshot.location = selectedLocation
+        compatibilitySnapshot.fetchedAt = .distantPast
 
-        if let lastLocation = preferences.loadLastLocation(),
-           lastLocation.id != cached.location.id {
-            return nil
-        }
-
-        return cached.restoringFromCache()
+        return WeatherStore(
+            repository: makeLiveRepository(includeWeatherKit: includeWeatherKit),
+            snapshot: compatibilitySnapshot,
+            preferences: preferences,
+            initialScreenState: WeatherScreenState(location: selectedLocation),
+            usesFreshOnlyState: true
+        )
     }
 
     static func isRestorable(_ snapshot: WeatherSnapshot, now: Date = Date()) -> Bool {
@@ -111,7 +97,7 @@ enum AppEnvironment {
             : DisabledWeatherKitSupplementalProvider()
 
         return LiveWeatherRepository(
-            primary: NWSWeatherProvider(),
+            primary: NWSWeatherProvider(metadataCache: .live),
             supplemental: supplemental
         )
     }

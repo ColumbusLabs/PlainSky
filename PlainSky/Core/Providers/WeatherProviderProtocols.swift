@@ -17,6 +17,123 @@ struct SupplementalWeatherPayload: Sendable {
 
 protocol PrimaryWeatherProviding {
     func weather(for location: WeatherLocation) async throws -> PrimaryWeatherPayload
+
+    func updates(
+        for location: WeatherLocation,
+        context: WeatherRefreshContext,
+        onUpdate: @escaping WeatherProductUpdateHandler
+    ) async throws
+}
+
+extension PrimaryWeatherProviding {
+    func updates(
+        for location: WeatherLocation,
+        context: WeatherRefreshContext,
+        onUpdate: @escaping WeatherProductUpdateHandler
+    ) async throws {
+        let payload = try await weather(for: location)
+        let now = Date()
+        let identity = context.identity
+
+        await onUpdate(WeatherProductUpdate(
+            identity: identity,
+            event: .current(primaryState(
+                payload.current,
+                availability: payload.availability[.currentConditions],
+                provider: .nwsObservation,
+                name: "Current conditions",
+                now: now
+            ))
+        ))
+        await onUpdate(WeatherProductUpdate(
+            identity: identity,
+            event: .hourly(primaryState(
+                payload.hourly,
+                availability: payload.availability[.hourlyForecast],
+                provider: .nwsForecast,
+                name: "Hourly forecast",
+                now: now
+            ))
+        ))
+        await onUpdate(WeatherProductUpdate(
+            identity: identity,
+            event: .daily(primaryState(
+                payload.daily,
+                availability: payload.availability[.dailyForecast],
+                provider: .nwsForecast,
+                name: "Daily forecast",
+                now: now
+            ))
+        ))
+        await onUpdate(WeatherProductUpdate(
+            identity: identity,
+            event: .alerts(primaryState(
+                payload.alerts,
+                availability: payload.availability[.alerts],
+                provider: .nwsForecast,
+                name: "NWS alerts",
+                now: now,
+                allowEmpty: true
+            ))
+        ))
+    }
+
+    private func primaryState<Value: Sendable>(
+        _ value: Value?,
+        availability: WeatherProductAvailability?,
+        provider: WeatherProvider,
+        name: String,
+        now: Date,
+        allowEmpty: Bool = false
+    ) -> WeatherProductState<Value> {
+        let resolvedAvailability = availability ?? (value == nil
+            ? .unavailable("\(name) is unavailable.")
+            : .available)
+
+        switch resolvedAvailability {
+        case .loading:
+            return .loading
+        case let .unsupported(message):
+            return .unsupported(message)
+        case let .unavailable(message):
+            return .unavailable(message)
+        case .available:
+            guard let value else {
+                return .unavailable("\(name) is unavailable.")
+            }
+            if !allowEmpty,
+               let array = value as? [Any],
+               array.isEmpty {
+                return .unavailable("\(name) returned no usable data.")
+            }
+
+            var source: WeatherSourceMetadata
+            if let current = value as? CurrentConditions {
+                source = current.source
+            } else if let hourly = value as? [HourlyForecastItem], let first = hourly.first {
+                source = first.source
+            } else if let daily = value as? [DailyForecastItem], let first = daily.first {
+                source = first.source
+            } else if let alerts = value as? [WeatherAlert], let first = alerts.first {
+                source = first.source
+            } else {
+                source = WeatherSourceMetadata(
+                    provider: provider,
+                    productName: name,
+                    sourceName: nil,
+                    observedAt: nil,
+                    issuedAt: now,
+                    validFrom: nil,
+                    validTo: nil,
+                    fetchedAt: now,
+                    expiresAt: nil,
+                    validatedAt: now
+                )
+            }
+            source.validatedAt = now
+            return .available(value, WeatherValidationMetadata(source: source, validatedAt: now))
+        }
+    }
 }
 
 protocol SupplementalWeatherProviding {

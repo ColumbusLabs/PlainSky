@@ -1,16 +1,16 @@
 import SwiftUI
 
 struct DataSourcesCard: View {
-    let snapshot: WeatherSnapshot
+    let state: WeatherScreenState
 
     /// Apple requires its Weather mark and legal link to be shown when WeatherKit data is used.
     private var weatherKitSource: WeatherSourceMetadata? {
         [
-            snapshot.current.source,
-            snapshot.minutePrecipitation.first?.source,
-            snapshot.solar?.source,
-            snapshot.hourly.first?.source,
-            snapshot.daily.first?.source
+            state.current.validation?.source,
+            state.minutePrecipitation.validation?.source,
+            state.solarEvents.validation?.source,
+            state.hourly.validation?.source,
+            state.daily.validation?.source
         ]
         .compactMap { $0 }
         .first { $0.provider == .weatherKit && $0.attributionLegalURL != nil }
@@ -21,14 +21,16 @@ struct DataSourcesCard: View {
             VStack(alignment: .leading, spacing: 12) {
                 SectionHeader(title: "Data Sources")
 
-                SourceRow(title: "Current conditions", metadata: snapshot.current.source)
+                if let source = state.current.validation?.source {
+                    SourceRow(title: "Current conditions", metadata: source)
+                }
 
-                if let forecastSource = snapshot.hourly.first?.source {
+                if let forecastSource = state.hourly.validation?.source {
                     Divider().overlay(WeatherTheme.divider)
                     SourceRow(title: "Forecast", metadata: forecastSource)
                 }
 
-                if let minuteSource = snapshot.minutePrecipitation.first?.source {
+                if let minuteSource = state.minutePrecipitation.validation?.source {
                     Divider().overlay(WeatherTheme.divider)
                     SourceRow(title: "Next-hour precipitation", metadata: minuteSource)
                 }

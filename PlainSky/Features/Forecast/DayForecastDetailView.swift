@@ -17,7 +17,7 @@ struct DayForecastDetailView: View {
     }
 
     private var matchingHours: [HourlyForecastItem] {
-        store.snapshot.hourly.filter {
+        (store.screenState.hourly.value ?? []).filter {
             Calendar.autoupdatingCurrent.isDate($0.date, inSameDayAs: day.date)
         }
     }
@@ -160,7 +160,10 @@ struct DayForecastDetailView: View {
                     } label: {
                         DayHourRow(
                             item: hour,
-                            isDaytime: WeatherDaylight.isDaytime(hour.date, solar: store.snapshot.solar),
+                            isDaytime: WeatherDaylight.isDaytime(
+                                hour.date,
+                                solar: store.screenState.solarEvents.value
+                            ),
                             unitSystem: store.unitSystem
                         )
                     }

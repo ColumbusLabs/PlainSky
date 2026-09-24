@@ -138,6 +138,40 @@ final class WeatherStoreConcurrencyTests: XCTestCase {
         XCTAssertEqual(store.savedLocations.first?.name, "Current Location")
         XCTAssertEqual(store.savedLocations.count, 2)
     }
+
+    func testLongResumeCancelsOwnedLoadAndStartsFreshGeneration() async throws {
+        let repository = GatedUpdatesWeatherRepository()
+        let suite = "WeatherStoreLongResumeTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let start = Date()
+
+        let store = WeatherStore(
+            repository: repository,
+            snapshot: MockWeather.snapshot,
+            preferences: WeatherPreferences(defaults: defaults),
+            initialScreenState: WeatherScreenState(preview: MockWeather.snapshot),
+            usesFreshOnlyState: true
+        )
+        let oldRefresh = Task { await store.refresh(trigger: .startup) }
+        await repository.waitForStartCount(1)
+        XCTAssertTrue(store.isRefreshInFlight)
+
+        store.prepareForInactivity(at: start)
+        store.prepareForActive(at: start.addingTimeInterval(5 * 60))
+
+        XCTAssertFalse(store.isRefreshInFlight)
+        XCTAssertNil(store.screenState.current.value)
+        XCTAssertNil(store.screenState.hourly.value)
+
+        await store.refreshIfNeeded(trigger: .foreground)
+        let starts = await repository.startCount
+        XCTAssertEqual(starts, 2)
+        XCTAssertNotNil(store.screenState.current.value)
+
+        await repository.finishFirstLoad()
+        await oldRefresh.value
+    }
 }
 
 @MainActor
@@ -161,5 +195,64 @@ private final class DelayedWeatherRepository: WeatherRepository {
         snapshot.current.temperature = temperatures[location.id] ?? snapshot.current.temperature
         await onPrimary(snapshot)
         return snapshot
+    }
+}
+
+private actor GatedUpdatesWeatherRepository: WeatherRepository {
+    private(set) var startCount = 0
+    private var startWaiters: [(Int, CheckedContinuation<Void, Never>)] = []
+    private var firstLoadContinuation: CheckedContinuation<Void, Never>?
+
+    func load(
+        location: WeatherLocation,
+        onPrimary: (WeatherSnapshot) async -> Void
+    ) async throws -> WeatherSnapshot {
+        MockWeather.snapshot
+    }
+
+    func updates(
+        for location: WeatherLocation,
+        context: WeatherRefreshContext,
+        onUpdate: @escaping WeatherProductUpdateHandler
+    ) async throws {
+        startCount += 1
+        let ready = startWaiters.filter { $0.0 <= startCount }
+        startWaiters.removeAll { $0.0 <= startCount }
+        ready.forEach { $0.1.resume() }
+
+        if startCount == 1 {
+            await withCheckedContinuation { continuation in
+                firstLoadContinuation = continuation
+            }
+            try Task.checkCancellation()
+        }
+
+        let now = Date()
+        var current = MockWeather.snapshot.current
+        current.source.provider = .nwsObservation
+        current.source.observedAt = now
+        current.source.fetchedAt = now
+        current.source.validatedAt = now
+        current.source.expiresAt = now.addingTimeInterval(90 * 60)
+        await onUpdate(WeatherProductUpdate(
+            identity: context.identity,
+            event: .current(.available(
+                current,
+                WeatherValidationMetadata(source: current.source, validatedAt: now)
+            ))
+        ))
+        await onUpdate(WeatherProductUpdate(identity: context.identity, event: .terminal))
+    }
+
+    func waitForStartCount(_ expected: Int) async {
+        guard startCount < expected else { return }
+        await withCheckedContinuation { continuation in
+            startWaiters.append((expected, continuation))
+        }
+    }
+
+    func finishFirstLoad() {
+        firstLoadContinuation?.resume()
+        firstLoadContinuation = nil
     }
 }

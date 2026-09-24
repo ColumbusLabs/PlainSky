@@ -1,6 +1,6 @@
 # Faster fresh weather on startup and resume
 
-**Status:** Implementation plan only; no runtime optimization is implemented by this document.
+**Status:** Implemented on branch `codex/fresh-startup-performance` (Slices 1–6 in code with simulator verification). Physical-device measurement (Slice 7) is still outstanding. Results, evidence, and deviations are in [`STARTUP_PERFORMANCE_RESULTS.md`](STARTUP_PERFORMANCE_RESULTS.md).
 
 **Requested outcome:** Reduce the reported 5–10 second wait after the app has not been opened for a while, without displaying stale weather to disguise the delay.
 
@@ -326,16 +326,17 @@ Do not improve latency by making successful data disappear more frequently under
 
 ## 8. Progress and evidence ledger
 
-| Item | Status at publication |
+| Item | Status |
 | --- | --- |
 | Inspect current main and relevant source/test contracts | Complete at baseline `43a329c` |
 | Verify external NWS caching and Swift concurrency guidance | Complete; references below |
-| Identify code-level bottlenecks | Complete; not yet device-timed |
-| Implement runtime changes | Not started |
-| Native baseline trace | Not run in this environment |
-| Native build / unit / UI checks | Not run in this environment |
-| Signed-device performance comparison | Not run in this environment |
-| Publish this implementation plan to main | This documentation change |
+| Identify code-level bottlenecks | Complete; one more found during implementation (grid interval parsing, see results) |
+| Implement runtime changes (Slices 1–6) | Implemented on `codex/fresh-startup-performance` |
+| Native baseline trace | Simulator live-network probe only; no Instruments trace captured |
+| Native build / unit checks | 106/106 unit tests pass on iOS Simulator (iPhone 18 Pro), two consecutive runs |
+| Automated UI / first-frame checks | Not implemented; no `PlainSkyUITests` target yet |
+| Signed-device performance comparison | Not run |
+| Publish this implementation plan to main | Done (`dafea22`) |
 
 The implementing agent should append the commit, commands, test results, measurements, and remaining limitations after each slice. Do not turn planned gates into checked items without evidence.
 

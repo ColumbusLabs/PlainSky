@@ -41,4 +41,4 @@ Apple Weather attribution is already rendered wherever WeatherKit data is displa
 
 Use `--preview-data` for deterministic UI validation without live provider requests.
 
-Live launches can restore a matching cache for up to six hours, then render primary NWS data while the WeatherKit supplemental request is still loading. NOAA/NCEP remains the radar source in both live modes.
+Live launches never restore cached weather; each section appears once its own fresh result is validated. NWS products render while the WeatherKit supplemental request is still loading, and a WeatherKit current-condition fallback that arrives after the four-second NWS current budget still replaces the unavailable state. NOAA/NCEP remains the radar source in both live modes.

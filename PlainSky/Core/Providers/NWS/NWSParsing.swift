@@ -1,18 +1,29 @@
 import Foundation
 
 enum NWSParsing {
+    // Formatters and the duration pattern are expensive to build and are
+    // shared: grid enrichment parses thousands of intervals per refresh.
+    // ISO8601DateFormatter and NSRegularExpression are thread safe for parsing
+    // and matching.
+    private static let fractionalFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let standardFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
+    private static let durationPattern = try? NSRegularExpression(
+        pattern: #"^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$"#
+    )
+
     static func date(_ string: String?) -> Date? {
         guard let string else { return nil }
-
-        let fractional = ISO8601DateFormatter()
-        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = fractional.date(from: string) {
-            return date
-        }
-
-        let standard = ISO8601DateFormatter()
-        standard.formatOptions = [.withInternetDateTime]
-        return standard.date(from: string)
+        return fractionalFormatter.date(from: string) ?? standardFormatter.date(from: string)
     }
 
     static func interval(_ string: String) -> (start: Date, end: Date)? {
@@ -27,8 +38,7 @@ enum NWSParsing {
     }
 
     static func duration(_ string: String) -> TimeInterval? {
-        let pattern = #"^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$"#
-        guard let regex = try? NSRegularExpression(pattern: pattern),
+        guard let regex = durationPattern,
               let match = regex.firstMatch(
                 in: string,
                 range: NSRange(string.startIndex..., in: string)
@@ -52,17 +62,25 @@ enum NWSParsing {
     }
 }
 
+/// A grid series with its ISO 8601 intervals parsed once, for repeated lookups.
+struct NWSParsedGridSeries: Sendable {
+    let uom: String?
+    private let entries: [(start: Date, end: Date, value: Double?)]
+
+    init(_ series: NWSGridValueSeries) {
+        uom = series.uom
+        entries = series.values.compactMap { entry in
+            NWSParsing.interval(entry.validTime).map { ($0.start, $0.end, entry.value) }
+        }
+    }
+
+    func value(at date: Date) -> Double? {
+        entries.first { $0.start <= date && date < $0.end }?.value
+    }
+}
+
 extension NWSGridValueSeries {
     func value(at date: Date) -> Double? {
-        for entry in values {
-            guard let interval = NWSParsing.interval(entry.validTime),
-                  interval.start <= date,
-                  date < interval.end else {
-                continue
-            }
-            return entry.value
-        }
-
-        return nil
+        NWSParsedGridSeries(self).value(at: date)
     }
 }

@@ -48,6 +48,7 @@ struct WeatherKitSupplementalProvider: SupplementalWeatherProviding {
         let currentSource = sourceMetadata(
             productName: "Apple current conditions",
             metadata: current.metadata,
+            observedAt: current.date,
             validFrom: current.date,
             validTo: nil,
             fetchedAt: fetchedAt,
@@ -153,6 +154,7 @@ struct WeatherKitSupplementalProvider: SupplementalWeatherProviding {
     private func sourceMetadata(
         productName: String,
         metadata: WeatherMetadata,
+        observedAt: Date? = nil,
         validFrom: Date?,
         validTo: Date?,
         fetchedAt: Date,
@@ -162,7 +164,7 @@ struct WeatherKitSupplementalProvider: SupplementalWeatherProviding {
             provider: .weatherKit,
             productName: productName,
             sourceName: attribution.serviceName,
-            observedAt: nil,
+            observedAt: observedAt,
             issuedAt: metadata.date,
             validFrom: validFrom,
             validTo: validTo,
@@ -171,7 +173,8 @@ struct WeatherKitSupplementalProvider: SupplementalWeatherProviding {
             attributionServiceName: attribution.serviceName,
             attributionLegalURL: attribution.legalPageURL,
             attributionMarkLightURL: attribution.combinedMarkLightURL,
-            attributionMarkDarkURL: attribution.combinedMarkDarkURL
+            attributionMarkDarkURL: attribution.combinedMarkDarkURL,
+            validatedAt: fetchedAt
         )
     }
 

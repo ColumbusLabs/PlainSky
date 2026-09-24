@@ -50,7 +50,7 @@ Apple Developer setup and physical-device validation:
 
 Do not treat adapter or simulator tests as physical-device validation.
 
-Live launches may restore a matching cached snapshot for up to six hours while a fresh load runs. Primary NWS data can render before the optional WeatherKit supplement finishes; time-sensitive products are re-verified live.
+Live launches never display weather restored from disk: every section starts as loading and fills in as its own fresh NWS or WeatherKit result is validated. Primary NWS products render independently of each other and of the optional WeatherKit supplement.
 
 See `docs/WEATHERKIT_SETUP.md`.
 

@@ -12,7 +12,7 @@ The app now has a real no-key weather stack:
 
 Normal launches use each provider only for those assigned products: NWS for primary weather, NOAA/NCEP for radar, and WeatherKit for supplements. Deterministic UI testing uses `--preview-data`; `--live-nws` disables WeatherKit for diagnostics.
 
-Live launches restore a matching cached snapshot immediately when it is no more than six hours old, then refresh primary NWS data and, when enabled, supplemental products in stages. Expired snapshots are ignored.
+Live launches never show cached weather. The selected place appears immediately and each section fills in as soon as its own fresh NWS or WeatherKit result is validated.
 
 The app does not average providers or invent meteorology.
 

@@ -1,18 +1,18 @@
 import Foundation
 
-struct NWSFeatureCollection<Properties: Decodable>: Decodable {
+struct NWSFeatureCollection<Properties: Decodable & Sendable>: Decodable, Sendable {
     let features: [NWSFeature<Properties>]
 }
 
-struct NWSFeature<Properties: Decodable>: Decodable {
+struct NWSFeature<Properties: Decodable & Sendable>: Decodable, Sendable {
     let properties: Properties
 }
 
-struct NWSPointResponse: Decodable {
+struct NWSPointResponse: Decodable, Sendable {
     let properties: NWSPointProperties
 }
 
-struct NWSPointProperties: Decodable {
+struct NWSPointProperties: Decodable, Sendable {
     let gridId: String
     let gridX: Int
     let gridY: Int
@@ -23,18 +23,18 @@ struct NWSPointProperties: Decodable {
     let timeZone: String?
 }
 
-struct NWSForecastResponse: Decodable {
+struct NWSForecastResponse: Decodable, Sendable {
     let properties: NWSForecastProperties
 }
 
-struct NWSForecastProperties: Decodable {
+struct NWSForecastProperties: Decodable, Sendable {
     let updated: String?
     let generatedAt: String?
     let updateTime: String?
     let periods: [NWSForecastPeriod]
 }
 
-struct NWSForecastPeriod: Decodable {
+struct NWSForecastPeriod: Decodable, Sendable {
     let number: Int
     let name: String
     let startTime: String
@@ -52,7 +52,7 @@ struct NWSForecastPeriod: Decodable {
     let detailedForecast: String?
 }
 
-enum NWSForecastMeasurement: Decodable {
+enum NWSForecastMeasurement: Decodable, Sendable {
     case quantity(NWSQuantitativeValue)
     case number(Double)
     case text(String)
@@ -81,11 +81,11 @@ enum NWSForecastMeasurement: Decodable {
     }
 }
 
-struct NWSGridpointResponse: Decodable {
+struct NWSGridpointResponse: Decodable, Sendable {
     let properties: NWSGridpointProperties
 }
 
-struct NWSGridpointProperties: Decodable {
+struct NWSGridpointProperties: Decodable, Sendable {
     let updateTime: String?
     let validTimes: String?
     let apparentTemperature: NWSGridValueSeries?
@@ -95,26 +95,26 @@ struct NWSGridpointProperties: Decodable {
     let dewpoint: NWSGridValueSeries?
 }
 
-struct NWSGridValueSeries: Decodable {
+struct NWSGridValueSeries: Decodable, Sendable {
     let uom: String?
     let values: [NWSGridValue]
 }
 
-struct NWSGridValue: Decodable {
+struct NWSGridValue: Decodable, Sendable {
     let validTime: String
     let value: Double?
 }
 
-struct NWSStationProperties: Decodable {
+struct NWSStationProperties: Decodable, Sendable {
     let stationIdentifier: String
     let name: String
 }
 
-struct NWSObservationResponse: Decodable {
+struct NWSObservationResponse: Decodable, Sendable {
     let properties: NWSObservationProperties
 }
 
-struct NWSObservationProperties: Decodable {
+struct NWSObservationProperties: Decodable, Sendable {
     let stationId: String?
     let stationName: String?
     let timestamp: String
@@ -131,21 +131,21 @@ struct NWSObservationProperties: Decodable {
     let heatIndex: NWSQuantitativeValue?
 }
 
-struct NWSQuantitativeValue: Decodable {
+struct NWSQuantitativeValue: Decodable, Sendable {
     let unitCode: String?
     let value: Double?
 }
 
-struct NWSAlertCollection: Decodable {
+struct NWSAlertCollection: Decodable, Sendable {
     let features: [NWSAlertFeature]
 }
 
-struct NWSAlertFeature: Decodable {
+struct NWSAlertFeature: Decodable, Sendable {
     let id: String
     let properties: NWSAlertProperties
 }
 
-struct NWSAlertProperties: Decodable {
+struct NWSAlertProperties: Decodable, Sendable {
     let event: String
     let headline: String?
     let description: String

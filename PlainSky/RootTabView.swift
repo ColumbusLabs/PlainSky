@@ -51,12 +51,36 @@ struct RootTabView: View {
         .toolbarBackground(.ultraThinMaterial, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
         .task {
-            await store.refreshIfNeeded()
+            await store.refreshIfNeeded(trigger: .startup)
         }
         .onChange(of: scenePhase) { _, phase in
-            guard phase == .active else { return }
-            Task {
-                await store.refreshIfNeeded()
+            if phase == .active {
+                store.prepareForActive()
+                Task {
+                    await store.refreshIfNeeded(trigger: .foreground)
+                }
+            } else {
+                store.prepareForInactivity()
+            }
+        }
+        .task(id: scenePhase) {
+            guard scenePhase == .active else { return }
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(for: .seconds(15))
+                } catch {
+                    return
+                }
+                if store.expireProducts() {
+                    await store.refreshIfNeeded(trigger: .automatic)
+                }
+            }
+        }
+        .overlay {
+            if scenePhase != .active || store.isScreenMasked {
+                Color(uiColor: .systemBackground)
+                    .ignoresSafeArea()
+                    .accessibilityHidden(true)
             }
         }
     }

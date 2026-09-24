@@ -4,23 +4,25 @@ struct DiagnosticsView: View {
     @Environment(WeatherStore.self) private var store
 
     private var sourceGroups: [(String, WeatherSourceMetadata)] {
-        var groups: [(String, WeatherSourceMetadata)] = [
-            ("Current conditions", store.snapshot.current.source)
-        ]
+        var groups: [(String, WeatherSourceMetadata)] = []
 
-        if let source = store.snapshot.hourly.first?.source {
+        if let source = store.screenState.current.validation?.source {
+            groups.append(("Current conditions", source))
+        }
+
+        if let source = store.screenState.hourly.validation?.source {
             groups.append(("Hourly forecast", source))
         }
 
-        if let source = store.snapshot.daily.first?.source {
+        if let source = store.screenState.daily.validation?.source {
             groups.append(("Daily forecast", source))
         }
 
-        if let source = store.snapshot.minutePrecipitation.first?.source {
+        if let source = store.screenState.minutePrecipitation.validation?.source {
             groups.append(("Next-hour precipitation", source))
         }
 
-        if let source = store.snapshot.solar?.source {
+        if let source = store.screenState.solarEvents.validation?.source {
             groups.append(("UV / solar", source))
         }
 
@@ -47,12 +49,12 @@ struct DiagnosticsView: View {
 
                             DiagnosticValueRow(
                                 label: "Loaded alerts",
-                                value: String(store.snapshot.alerts.count)
+                                value: store.screenState.alerts.value.map { String($0.count) } ?? "—"
                             )
 
                             DiagnosticValueRow(
-                                label: "Snapshot fetched",
-                                value: formatted(store.snapshot.fetchedAt)
+                                label: "Last product validation",
+                                value: formatted(latestValidation)
                             )
                         }
                     }
@@ -78,19 +80,19 @@ struct DiagnosticsView: View {
 
                 DiagnosticValueRow(
                     label: "Name",
-                    value: store.snapshot.location.displayName
+                    value: store.screenState.location.displayName
                 )
                 DiagnosticValueRow(
                     label: "Latitude",
-                    value: String(format: "%.5f", store.snapshot.location.latitude)
+                    value: String(format: "%.5f", store.screenState.location.latitude)
                 )
                 DiagnosticValueRow(
                     label: "Longitude",
-                    value: String(format: "%.5f", store.snapshot.location.longitude)
+                    value: String(format: "%.5f", store.screenState.location.longitude)
                 )
                 DiagnosticValueRow(
                     label: "Current location",
-                    value: store.snapshot.location.isCurrentLocation ? "Yes" : "No"
+                    value: store.screenState.location.isCurrentLocation ? "Yes" : "No"
                 )
                 DiagnosticValueRow(
                     label: "Units",
@@ -111,7 +113,7 @@ struct DiagnosticsView: View {
                 )
                 DiagnosticValueRow(
                     label: "Refreshing",
-                    value: store.isRefreshing ? "Yes" : "No"
+                    value: store.isRefreshInFlight ? "Yes" : "No"
                 )
                 DiagnosticValueRow(
                     label: "Last error",
@@ -144,7 +146,7 @@ struct DiagnosticsView: View {
                     .padding(.bottom, 8)
 
                 ForEach(Array(WeatherProduct.allCases.enumerated()), id: \.element.id) { index, product in
-                    let availability = store.snapshot.availability(for: product)
+                    let availability = store.screenState.availability(for: product)
 
                     HStack(alignment: .firstTextBaseline, spacing: 10) {
                         Circle()
@@ -202,6 +204,20 @@ struct DiagnosticsView: View {
     private func formatted(_ date: Date?) -> String {
         guard let date else { return "—" }
         return date.formatted(date: .abbreviated, time: .standard)
+    }
+
+    private var latestValidation: Date? {
+        [
+            store.screenState.current.validation?.validatedAt,
+            store.screenState.hourly.validation?.validatedAt,
+            store.screenState.daily.validation?.validatedAt,
+            store.screenState.alerts.validation?.validatedAt,
+            store.screenState.minutePrecipitation.validation?.validatedAt,
+            store.screenState.uvIndex.validation?.validatedAt,
+            store.screenState.solarEvents.validation?.validatedAt
+        ]
+        .compactMap { $0 }
+        .max()
     }
 }
 

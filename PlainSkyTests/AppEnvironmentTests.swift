@@ -21,97 +21,35 @@ final class AppEnvironmentTests: XCTestCase {
     }
 
     @MainActor
-    func testRestorableSnapshotRestoresWithoutSavedLastLocation() throws {
-        let suite = "AppEnvironmentRestoreTests-\(UUID().uuidString)"
+    func testLiveStoreRestoresPreferencesButNeverDisplaysCachedWeather() throws {
+        let suite = "AppEnvironmentFreshStartupTests-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
 
         let preferences = WeatherPreferences(defaults: defaults)
-        let snapshot = MockWeather.snapshot
-
-        preferences.saveCachedSnapshot(snapshot)
-
-        let restored = try XCTUnwrap(
-            AppEnvironment.restorableSnapshot(from: preferences)
+        let selected = WeatherLocation(
+            name: "Home",
+            region: "Indiana",
+            latitude: 39.17,
+            longitude: -86.52
         )
-        XCTAssertEqual(restored.location.id, snapshot.location.id)
-        XCTAssertEqual(restored.current.temperature, snapshot.current.temperature)
-        XCTAssertTrue(restored.alerts.isEmpty)
-        XCTAssertTrue(restored.availability(for: .alerts).isLoading)
-        XCTAssertTrue(restored.availability(for: .uvIndex).isLoading)
-        XCTAssertNil(restored.solar)
-    }
+        var staleSnapshot = MockWeather.snapshot
+        staleSnapshot.location = selected
+        staleSnapshot.current.temperature = 99
+        staleSnapshot.fetchedAt = Date()
+        preferences.saveCachedSnapshot(staleSnapshot)
+        preferences.saveLastLocation(selected)
 
-    @MainActor
-    func testRestorableSnapshotAcceptsCacheForSavedLastLocation() throws {
-        let suite = "AppEnvironmentRestoreMatchTests-\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-
-        let preferences = WeatherPreferences(defaults: defaults)
-        let snapshot = MockWeather.snapshot
-
-        preferences.saveCachedSnapshot(snapshot)
-        preferences.saveLastLocation(snapshot.location)
-
-        let restored = try XCTUnwrap(
-            AppEnvironment.restorableSnapshot(from: preferences)
-        )
-        XCTAssertEqual(restored.location.id, snapshot.location.id)
-    }
-
-    @MainActor
-    func testRestorableSnapshotAcceptsRecentCache() throws {
-        let suite = "AppEnvironmentRecentCacheTests-\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-
-        let preferences = WeatherPreferences(defaults: defaults)
-        var snapshot = MockWeather.snapshot
-        let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
-        snapshot.fetchedAt = now.addingTimeInterval(
-            -AppEnvironment.maximumRestorableSnapshotAge + 1
-        )
-        preferences.saveCachedSnapshot(snapshot)
-
-        XCTAssertNotNil(AppEnvironment.restorableSnapshot(from: preferences, now: now))
-    }
-
-    @MainActor
-    func testRestorableSnapshotRejectsExpiredCache() throws {
-        let suite = "AppEnvironmentExpiredCacheTests-\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-
-        let preferences = WeatherPreferences(defaults: defaults)
-        var snapshot = MockWeather.snapshot
-        let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
-        snapshot.fetchedAt = now.addingTimeInterval(
-            -AppEnvironment.maximumRestorableSnapshotAge - 1
-        )
-        preferences.saveCachedSnapshot(snapshot)
-
-        XCTAssertNil(AppEnvironment.restorableSnapshot(from: preferences, now: now))
-    }
-
-    @MainActor
-    func testRestorableSnapshotRejectsCacheForAnotherLocation() throws {
-        let suite = "AppEnvironmentRestoreMismatchTests-\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-
-        let preferences = WeatherPreferences(defaults: defaults)
-
-        preferences.saveCachedSnapshot(MockWeather.snapshot)
-        preferences.saveLastLocation(
-            WeatherLocation(
-                name: "Other",
-                region: "Ohio",
-                latitude: 39.9,
-                longitude: -83.0
-            )
+        let store = AppEnvironment.makeLiveWeatherStore(
+            includeWeatherKit: false,
+            preferences: preferences
         )
 
-        XCTAssertNil(AppEnvironment.restorableSnapshot(from: preferences))
+        XCTAssertEqual(store.screenState.location, selected)
+        XCTAssertTrue(store.screenState.current.isLoading)
+        XCTAssertTrue(store.screenState.hourly.isLoading)
+        XCTAssertTrue(store.screenState.daily.isLoading)
+        XCTAssertTrue(store.screenState.alerts.isLoading)
+        XCTAssertNil(store.screenState.current.value)
     }
 }

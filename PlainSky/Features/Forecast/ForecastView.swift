@@ -13,7 +13,7 @@ struct ForecastView: View {
 
     var body: some View {
         ZStack {
-            WeatherBackdrop(style: .current(for: store.snapshot))
+            WeatherBackdrop(style: .current(for: store.screenState))
 
             ScrollView {
                 LazyVStack(spacing: WeatherTheme.sectionSpacing) {
@@ -35,11 +35,6 @@ struct ForecastView: View {
                 await store.refresh()
             }
         }
-        .overlay {
-            if store.isShowingPlaceholderData {
-                LiveWeatherLoadingView(title: "Loading live forecast")
-            }
-        }
         .navigationTitle("Forecast")
         .toolbar(.hidden, for: .navigationBar)
     }
@@ -48,33 +43,35 @@ struct ForecastView: View {
     private var forecastContent: some View {
         switch router.forecastMode {
         case .daily:
-            if store.snapshot.daily.isEmpty {
+            if let daily = store.screenState.daily.value {
+                DailyForecastList(items: daily)
+            } else if store.screenState.daily.isLoading {
+                WeatherLoadingCard(title: "Loading daily forecast")
+            } else {
                 WeatherUnavailableCard(
                     title: "Daily forecast unavailable",
-                    message: store.snapshot
-                        .availability(for: .dailyForecast)
-                        .message ?? "No daily forecast data was returned."
+                    message: store.screenState.daily.message
+                        ?? "No daily forecast data was returned."
                 )
-            } else {
-                DailyForecastList(items: store.snapshot.daily)
             }
 
         case .hourly:
-            if store.snapshot.hourly.isEmpty {
+            if let hourly = store.screenState.hourly.value {
+                HourlyForecastView(items: hourly)
+            } else if store.screenState.hourly.isLoading {
+                WeatherLoadingCard(title: "Loading hourly forecast")
+            } else {
                 WeatherUnavailableCard(
                     title: "Hourly forecast unavailable",
-                    message: store.snapshot
-                        .availability(for: .hourlyForecast)
-                        .message ?? "No hourly forecast data was returned."
+                    message: store.screenState.hourly.message
+                        ?? "No hourly forecast data was returned."
                 )
-            } else {
-                HourlyForecastView(items: store.snapshot.hourly)
             }
         }
     }
 
     private var header: some View {
-        let current = store.snapshot.current
+        let current = store.screenState.current.value
 
         return HStack(alignment: .bottom, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
@@ -84,7 +81,7 @@ struct ForecastView: View {
 
                 LocationMenu {
                     HStack(spacing: 6) {
-                        Text(store.snapshot.location.displayName)
+                        Text(store.screenState.location.displayName)
                             .font(.body.weight(.medium))
                             .lineLimit(1)
 
@@ -98,21 +95,38 @@ struct ForecastView: View {
             Spacer(minLength: 8)
 
             VStack(alignment: .trailing, spacing: 2) {
-                HStack(spacing: 8) {
-                    ConditionIcon(
-                        condition: current.condition,
-                        isDaytime: WeatherDaylight.isDaytime(Date(), solar: store.snapshot.solar),
-                        size: 30
-                    )
+                if let current {
+                    HStack(spacing: 8) {
+                        ConditionIcon(
+                            condition: current.condition,
+                            isDaytime: WeatherDaylight.isDaytime(
+                                Date(),
+                                solar: store.screenState.solarEvents.value
+                            ),
+                            size: 30
+                        )
 
-                    Text(WeatherFormatters.temperature(current.temperature, unitSystem: store.unitSystem))
+                        Text(WeatherFormatters.temperature(
+                            current.temperature,
+                            unitSystem: store.unitSystem
+                        ))
                         .font(.system(size: 40, weight: .semibold))
                         .monospacedDigit()
-                }
+                    }
 
-                Text(current.conditionDescription)
-                    .font(.subheadline.weight(.medium))
-                    .lineLimit(1)
+                    Text(current.conditionDescription)
+                        .font(.subheadline.weight(.medium))
+                        .lineLimit(1)
+                } else {
+                    Text("—")
+                        .font(.system(size: 40, weight: .semibold))
+                        .monospacedDigit()
+                    Text(store.screenState.current.isLoading
+                        ? "Checking conditions"
+                        : "Current conditions unavailable")
+                        .font(.caption)
+                        .lineLimit(1)
+                }
             }
             .accessibilityElement(children: .combine)
         }

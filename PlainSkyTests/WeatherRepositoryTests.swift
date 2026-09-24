@@ -206,6 +206,59 @@ final class WeatherRepositoryTests: XCTestCase {
         XCTAssertLessThan(elapsed, .seconds(1))
     }
 
+    func testCurrentBecomesUnavailableAtCurrentBudgetWhileWeatherKitContinues() async throws {
+        let supplementalProbe = SupplementalStartProbe()
+        let currentUnavailable = expectation(description: "Current resolves at its own deadline")
+        let location = MockWeather.snapshot.location
+        let repository = LiveWeatherRepository(
+            primary: FakePrimaryProvider(
+                payload: PrimaryWeatherPayload(
+                    current: nil,
+                    hourly: [],
+                    daily: [],
+                    alerts: []
+                )
+            ),
+            supplemental: UncooperativeSupplementalProvider(
+                delay: 2,
+                probe: supplementalProbe
+            ),
+            supplementalTimeout: .seconds(5)
+        )
+        let context = WeatherRefreshContext(
+            location: location,
+            requestBudgets: WeatherRequestBudgets(
+                current: .milliseconds(150),
+                weatherKit: .seconds(5)
+            )
+        )
+
+        let start = ContinuousClock.now
+        let updatesTask = Task {
+            try await repository.updates(
+                for: location,
+                context: context,
+                onUpdate: { update in
+                    guard case .current(.unavailable) = update.event else { return }
+                    currentUnavailable.fulfill()
+                }
+            )
+        }
+
+        await fulfillment(of: [currentUnavailable], timeout: 1)
+        XCTAssertLessThan(start.duration(to: .now), .seconds(1))
+        let supplementalHadStarted = await supplementalProbe.hasStarted
+        XCTAssertTrue(supplementalHadStarted)
+
+        updatesTask.cancel()
+        do {
+            try await updatesTask.value
+            XCTFail("Expected the parent refresh to cancel cleanly.")
+        } catch is CancellationError {
+            // Expected: the current product resolves before the owned refresh ends.
+        }
+    }
+
     func testCancellationWhileWaitingForSupplementalReturnsPromptly() async throws {
         let probe = SupplementalStartProbe()
         let repository = LiveWeatherRepository(
@@ -271,13 +324,146 @@ final class WeatherRepositoryTests: XCTestCase {
             )
         )
     }
+
+    // MARK: - Live incremental path (`updates`), which the app uses
+
+    func testUpdatesPrimaryCurrentWinsAsWholeGroup() async throws {
+        var primaryCurrent = MockWeather.snapshot.current
+        primaryCurrent.temperature = 51
+        primaryCurrent.source.provider = .nwsObservation
+        var fallback = MockWeather.snapshot.current
+        fallback.temperature = 89
+        fallback.source.provider = .weatherKit
+
+        let updates = try await collectUpdates(LiveWeatherRepository(
+            primary: FakePrimaryProvider(payload: PrimaryWeatherPayload(
+                current: primaryCurrent,
+                hourly: MockWeather.snapshot.hourly,
+                daily: MockWeather.snapshot.daily,
+                alerts: []
+            )),
+            supplemental: FakeSupplementalProvider(payload: SupplementalWeatherPayload(
+                currentFallback: fallback,
+                minutePrecipitation: MockWeather.snapshot.minutePrecipitation,
+                solar: MockWeather.snapshot.solar
+            ))
+        ))
+
+        let currents = updates.compactMap(\.currentState)
+        XCTAssertEqual(currents.count, 1, "One current provider is selected per refresh.")
+        XCTAssertEqual(currents.first?.value?.temperature, 51)
+        XCTAssertEqual(currents.first?.value?.source.provider, .nwsObservation)
+        XCTAssertTrue(updates.last?.isTerminal == true)
+    }
+
+    func testUpdatesMissingCurrentFromBothProvidersKeepsForecasts() async throws {
+        let updates = try await collectUpdates(LiveWeatherRepository(
+            primary: FakePrimaryProvider(payload: PrimaryWeatherPayload(
+                current: nil,
+                hourly: MockWeather.snapshot.hourly,
+                daily: MockWeather.snapshot.daily,
+                alerts: []
+            )),
+            supplemental: FakeSupplementalProvider(payload: SupplementalWeatherPayload(
+                currentFallback: nil,
+                minutePrecipitation: [],
+                solar: nil
+            ))
+        ))
+
+        let currents = updates.compactMap(\.currentState)
+        XCTAssertEqual(currents.count, 1)
+        XCTAssertNil(currents.first?.value)
+        XCTAssertFalse(currents.first?.isLoading ?? true)
+        XCTAssertTrue(updates.contains { update in
+            guard case let .hourly(.available(items, _)) = update.event else { return false }
+            return !items.isEmpty
+        })
+        XCTAssertTrue(updates.contains { update in
+            guard case let .daily(.available(items, _)) = update.event else { return false }
+            return !items.isEmpty
+        })
+    }
+
+    func testFallbackArrivingAfterCurrentDeadlineStillReplacesUnavailable() async throws {
+        var fallback = MockWeather.snapshot.current
+        fallback.temperature = 66
+        fallback.source.provider = .weatherKit
+        let location = MockWeather.snapshot.location
+
+        let updates = try await collectUpdates(
+            LiveWeatherRepository(
+                primary: FakePrimaryProvider(payload: PrimaryWeatherPayload(
+                    current: nil,
+                    hourly: MockWeather.snapshot.hourly,
+                    daily: MockWeather.snapshot.daily,
+                    alerts: []
+                ), delay: .milliseconds(400)),
+                supplemental: SlowSupplementalProvider(
+                    payload: SupplementalWeatherPayload(
+                        currentFallback: fallback,
+                        minutePrecipitation: [],
+                        solar: nil
+                    ),
+                    delay: .milliseconds(200)
+                )
+            ),
+            context: WeatherRefreshContext(
+                location: location,
+                requestBudgets: WeatherRequestBudgets(
+                    current: .milliseconds(50),
+                    weatherKit: .seconds(5)
+                )
+            )
+        )
+
+        let currents = updates.compactMap(\.currentState)
+        XCTAssertEqual(currents.count, 2, "Unavailable at the deadline, then the fallback.")
+        XCTAssertNil(currents.first?.value)
+        XCTAssertEqual(currents.last?.value?.temperature, 66)
+        XCTAssertEqual(currents.last?.value?.source.provider, .weatherKit)
+    }
+
+    private func collectUpdates(
+        _ repository: LiveWeatherRepository,
+        context: WeatherRefreshContext? = nil
+    ) async throws -> [WeatherProductUpdate] {
+        let location = MockWeather.snapshot.location
+        let context = context ?? WeatherRefreshContext(location: location)
+        let recorder = RepositoryUpdateRecorder()
+        try await repository.updates(for: location, context: context) { update in
+            recorder.updates.append(update)
+        }
+        return recorder.updates
+    }
 }
 
 private struct FakePrimaryProvider: PrimaryWeatherProviding {
     let payload: PrimaryWeatherPayload
+    var delay: Duration = .zero
 
     func weather(for location: WeatherLocation) async throws -> PrimaryWeatherPayload {
-        payload
+        if delay > .zero {
+            try await Task.sleep(for: delay)
+        }
+        return payload
+    }
+}
+
+@MainActor
+private final class RepositoryUpdateRecorder {
+    var updates: [WeatherProductUpdate] = []
+}
+
+private extension WeatherProductUpdate {
+    var currentState: WeatherProductState<CurrentConditions>? {
+        guard case let .current(state) = event else { return nil }
+        return state
+    }
+
+    var isTerminal: Bool {
+        guard case .terminal = event else { return false }
+        return true
     }
 }
 

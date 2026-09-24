@@ -15,7 +15,8 @@ struct LocationMenu<Content: View>: View {
                     Button {
                         store.selectAndRefresh(location)
                     } label: {
-                        if location.id == store.snapshot.location.id {
+                        if WeatherRequestLocationKey(location)
+                            == WeatherRequestLocationKey(store.screenState.location) {
                             Label(location.displayName, systemImage: "checkmark")
                         } else {
                             Label(
@@ -43,7 +44,7 @@ struct LocationMenu<Content: View>: View {
         } label: {
             label()
         }
-        .accessibilityLabel("Location: \(store.snapshot.location.displayName)")
+        .accessibilityLabel("Location: \(store.screenState.location.displayName)")
         .accessibilityHint("Choose or add a place")
         .sheet(isPresented: $showingSearch) {
             NavigationStack {

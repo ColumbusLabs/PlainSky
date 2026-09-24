@@ -5,8 +5,11 @@ struct TodayView: View {
     @Environment(AppRouter.self) private var router
 
     var body: some View {
+        let weather = store.screenState
+        let alerts = weather.alerts.value ?? []
+
         ZStack {
-            WeatherBackdrop(style: .current(for: store.snapshot))
+            WeatherBackdrop(style: .current(for: weather))
 
             ScrollView {
                 LazyVStack(spacing: WeatherTheme.sectionSpacing) {
@@ -14,16 +17,17 @@ struct TodayView: View {
                         TodayLocationHeader()
 
                         CurrentConditionsHero(
-                            current: store.snapshot.current,
-                            today: store.snapshot.daily.first
+                            current: weather.current,
+                            today: weather.daily.value?.first
                         )
                     }
                     .padding(.bottom, 10)
 
                     RefreshErrorBanner()
 
-                    if store.snapshot.alerts.isEmpty,
-                       let alertMessage = store.snapshot.availability(for: .alerts).message,
+                    if alerts.isEmpty,
+                       !weather.alerts.isLoading,
+                       let alertMessage = weather.alerts.message,
                        alertMessage != store.lastRefreshError {
                         WeatherUnavailableCard(
                             title: "Alert status unavailable",
@@ -32,7 +36,7 @@ struct TodayView: View {
                         )
                     }
 
-                    ForEach(store.snapshot.alerts.prefix(2)) { alert in
+                    ForEach(alerts.prefix(2)) { alert in
                         NavigationLink {
                             AlertDetailView(alert: alert)
                         } label: {
@@ -41,11 +45,11 @@ struct TodayView: View {
                         .buttonStyle(.plain)
                     }
 
-                    if store.snapshot.alerts.count > 2 {
+                    if alerts.count > 2 {
                         NavigationLink {
                             AlertsView()
                         } label: {
-                            Text("View all \(store.snapshot.alerts.count) active alerts")
+                            Text("View all \(alerts.count) active alerts")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(WeatherTheme.accent)
                                 .frame(maxWidth: .infinity)
@@ -58,14 +62,15 @@ struct TodayView: View {
                     dailySection
 
                     RadarPreviewCard(
-                        location: store.snapshot.location,
-                        availability: store.snapshot.availability(for: .radar),
+                        location: weather.location,
+                        availability: weather.radar.availability,
                         onOpen: router.showRadar
                     )
 
                     WeatherMetricsGrid(
-                        current: store.snapshot.current,
-                        solar: store.snapshot.solar
+                        current: weather.current,
+                        uvIndex: weather.uvIndex,
+                        solar: weather.solarEvents
                     )
                 }
                 .padding(.horizontal, WeatherTheme.horizontalPadding)
@@ -77,59 +82,52 @@ struct TodayView: View {
                 await store.refresh()
             }
         }
-        .overlay {
-            if store.isShowingPlaceholderData {
-                LiveWeatherLoadingView(title: "Loading live weather")
-            }
-        }
         .toolbar(.hidden, for: .navigationBar)
     }
 
     @ViewBuilder
     private var minutePrecipitationSection: some View {
-        if !store.snapshot.minutePrecipitation.isEmpty {
-            NextHourPrecipitationCard(samples: store.snapshot.minutePrecipitation)
-        } else if let message = store.snapshot
-            .availability(for: .minutePrecipitation)
-            .message,
-            message != store.lastRefreshError {
-            WeatherUnavailableCard(
-                title: "Next-hour precipitation unavailable",
-                message: message,
-                icon: "drop.triangle"
-            )
+        let state = store.screenState.minutePrecipitation
+        if let samples = state.value, !samples.isEmpty {
+            NextHourPrecipitationCard(samples: samples)
+        } else if state.isLoading {
+            WeatherLoadingCard(title: "Checking next-hour precipitation")
+        } else if let message = state.message, message != store.lastRefreshError {
+            WeatherUnavailableCard(title: "Next-hour precipitation unavailable", message: message, icon: "drop.triangle")
         }
     }
 
     @ViewBuilder
     private var hourlySection: some View {
-        if store.snapshot.hourly.isEmpty {
+        let state = store.screenState.hourly
+        if state.isLoading {
+            WeatherLoadingCard(title: "Loading hourly forecast")
+        } else if let items = state.value, !items.isEmpty {
+            HourlyForecastStrip(items: Array(items.prefix(12)))
+        } else {
             WeatherUnavailableCard(
                 title: "Hourly forecast unavailable",
-                message: store.snapshot
-                    .availability(for: .hourlyForecast)
-                    .message ?? "No hourly forecast data was returned.",
+                message: state.message ?? "No hourly forecast data was returned.",
                 icon: "clock.badge.exclamationmark"
             )
-        } else {
-            HourlyForecastStrip(items: Array(store.snapshot.hourly.prefix(12)))
         }
     }
 
     @ViewBuilder
     private var dailySection: some View {
-        if store.snapshot.daily.isEmpty {
-            WeatherUnavailableCard(
-                title: "Daily forecast unavailable",
-                message: store.snapshot
-                    .availability(for: .dailyForecast)
-                    .message ?? "No daily forecast data was returned.",
-                icon: "calendar.badge.exclamationmark"
+        let state = store.screenState.daily
+        if state.isLoading {
+            WeatherLoadingCard(title: "Loading daily forecast")
+        } else if let items = state.value, !items.isEmpty {
+            DailyForecastPreview(
+                items: Array(items.prefix(5)),
+                onSeeAll: router.showDailyForecast
             )
         } else {
-            DailyForecastPreview(
-                items: Array(store.snapshot.daily.prefix(5)),
-                onSeeAll: router.showDailyForecast
+            WeatherUnavailableCard(
+                title: "Daily forecast unavailable",
+                message: state.message ?? "No daily forecast data was returned.",
+                icon: "calendar.badge.exclamationmark"
             )
         }
     }
@@ -143,7 +141,7 @@ private struct TodayLocationHeader: View {
             LocationMenu {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
-                        Text(store.snapshot.location.name)
+                        Text(store.screenState.location.name)
                             .font(.title.weight(.bold))
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
@@ -152,8 +150,8 @@ private struct TodayLocationHeader: View {
                             .font(.headline.weight(.semibold))
                     }
 
-                    if !store.snapshot.location.region.isEmpty {
-                        Text(store.snapshot.location.region)
+                    if !store.screenState.location.region.isEmpty {
+                        Text(store.screenState.location.region)
                             .font(.subheadline.weight(.medium))
                             .foregroundStyle(WeatherTheme.heroSecondaryText)
                     }
@@ -199,17 +197,21 @@ private struct TodayLocationHeader: View {
     }
 
     private var badgeColor: Color? {
-        if !store.snapshot.alerts.isEmpty { return .red }
-        if store.snapshot.availability(for: .alerts).message != nil { return .orange }
+        if store.screenState.alerts.value?.isEmpty == false { return .red }
+        if store.screenState.alerts.message != nil { return .orange }
         return nil
     }
 
     private var alertAccessibilityLabel: String {
-        if !store.snapshot.alerts.isEmpty {
-            return "\(store.snapshot.alerts.count) active weather alerts"
+        if let alerts = store.screenState.alerts.value, !alerts.isEmpty {
+            return "\(alerts.count) active weather alerts"
         }
 
-        if store.snapshot.availability(for: .alerts).message != nil {
+        if store.screenState.alerts.isLoading {
+            return "Checking active weather alerts"
+        }
+
+        if store.screenState.alerts.message != nil {
             return "Weather alert status unavailable"
         }
 

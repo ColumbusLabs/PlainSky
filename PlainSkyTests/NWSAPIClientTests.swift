@@ -79,18 +79,55 @@ final class NWSAPIClientTests: XCTestCase {
             "forecast_temperature_qv,forecast_wind_speed_qv"
         )
     }
+
+    func testRefreshContextForcesProtocolRevalidation() async throws {
+        let http = CapturingHTTPClient(data: Data(
+            """
+            {
+              "properties": {
+                "gridId": "IND",
+                "gridX": 42,
+                "gridY": 55,
+                "forecast": "https://api.weather.gov/gridpoints/IND/42,55/forecast",
+                "forecastHourly": "https://api.weather.gov/gridpoints/IND/42,55/forecast/hourly",
+                "forecastGridData": "https://api.weather.gov/gridpoints/IND/42,55",
+                "observationStations": "https://api.weather.gov/gridpoints/IND/42,55/stations"
+              }
+            }
+            """.utf8
+        ))
+        let client = NWSAPIClient(httpClient: http)
+        let location = WeatherLocation(name: "Test", region: "IN", latitude: 39, longitude: -86)
+        let refresh = WeatherRefreshContext(location: location)
+
+        _ = try await client.point(
+            for: location,
+            context: refresh.requestContext(for: .routingMetadata)
+        )
+
+        XCTAssertEqual(http.lastRequest?.cachePolicy, .reloadRevalidatingCacheData)
+    }
 }
 
-private final class CapturingHTTPClient: HTTPClient {
+private final class CapturingHTTPClient: HTTPClient, @unchecked Sendable {
     private let responseData: Data
-    private(set) var lastRequest: URLRequest?
+    private let lock = NSLock()
+    private var lastRequestStorage: URLRequest?
+
+    var lastRequest: URLRequest? {
+        lock.lock()
+        defer { lock.unlock() }
+        return lastRequestStorage
+    }
 
     init(data: Data) {
         self.responseData = data
     }
 
     func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
-        lastRequest = request
+        lock.lock()
+        lastRequestStorage = request
+        lock.unlock()
 
         let response = HTTPURLResponse(
             url: request.url!,

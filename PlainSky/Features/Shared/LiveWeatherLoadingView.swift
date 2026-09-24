@@ -33,7 +33,7 @@ struct LiveWeatherLoadingView: View {
                             .font(.headline)
                             .foregroundStyle(WeatherTheme.primaryText)
 
-                            Text(store.snapshot.location.displayName)
+                            Text(store.screenState.location.displayName)
                                 .font(.subheadline)
                                 .foregroundStyle(WeatherTheme.secondaryText)
 

@@ -20,7 +20,7 @@ struct RadarView: View {
         GeometryReader { proxy in
             ZStack {
                 RadarMapView(
-                    location: store.snapshot.location,
+                    location: store.screenState.location,
                     frames: playback.frames,
                     selectedFrameID: playback.selectedFrame?.id,
                     recenterToken: recenterToken,
@@ -39,7 +39,7 @@ struct RadarView: View {
 
                 VStack(spacing: WeatherTheme.sectionSpacing) {
                     RadarHeader(
-                        location: store.snapshot.location,
+                        location: store.screenState.location,
                         isLoading: isLoadingRadar,
                         onRecenter: { recenterToken += 1 },
                         onRefresh: {
@@ -78,7 +78,7 @@ struct RadarView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .task(id: store.snapshot.location.id) {
+        .task(id: WeatherRequestLocationKey(store.screenState.location)) {
             recenterToken += 1
             await loadRadar()
         }
@@ -120,7 +120,7 @@ struct RadarView: View {
         isLoadingRadar = true
         radarError = nil
 
-        let location = store.snapshot.location
+        let location = store.screenState.location
         let forecastProvider = forecastProvider
         let forecastTask = Task {
             (try? await forecastProvider.frames(for: location, after: nil)) ?? []
@@ -139,7 +139,9 @@ struct RadarView: View {
             let latestScan = observed.last?.timestamp ?? .distantPast
             let forecast = await forecastTask.value.filter { $0.timestamp > latestScan }
 
-            guard !forecast.isEmpty, store.snapshot.location.id == location.id else { return }
+            guard !forecast.isEmpty,
+                  WeatherRequestLocationKey(store.screenState.location)
+                    == WeatherRequestLocationKey(location) else { return }
 
             let wasPlaying = playback.isPlaying
             let selectedID = playback.selectedFrame?.id

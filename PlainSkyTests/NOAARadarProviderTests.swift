@@ -183,16 +183,25 @@ final class NOAARadarProviderTests: XCTestCase {
     }
 }
 
-private final class RadarCapturingHTTPClient: HTTPClient {
+private final class RadarCapturingHTTPClient: HTTPClient, @unchecked Sendable {
     let responseData: Data
-    private(set) var lastRequest: URLRequest?
+    private let lock = NSLock()
+    private var lastRequestStorage: URLRequest?
+
+    var lastRequest: URLRequest? {
+        lock.lock()
+        defer { lock.unlock() }
+        return lastRequestStorage
+    }
 
     init(data: Data) {
         self.responseData = data
     }
 
     func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
-        lastRequest = request
+        lock.lock()
+        lastRequestStorage = request
+        lock.unlock()
 
         let response = HTTPURLResponse(
             url: request.url!,

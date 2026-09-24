@@ -67,7 +67,8 @@ enum NWSMapper {
                 validFrom: nil,
                 validTo: nil,
                 fetchedAt: fetchedAt,
-                expiresAt: observedAt.addingTimeInterval(maxAge)
+                expiresAt: observedAt.addingTimeInterval(maxAge),
+                validatedAt: fetchedAt
             )
         )
     }
@@ -79,10 +80,16 @@ enum NWSMapper {
         fetchedAt: Date
     ) -> [HourlyForecastItem] {
         let issuedAt = forecastIssueDate(response.properties)
+        let apparentTemperatureSeries = grid?.apparentTemperature.map(NWSParsedGridSeries.init)
+        let relativeHumiditySeries = grid?.relativeHumidity.map(NWSParsedGridSeries.init)
+        let dewPointSeries = grid?.dewpoint.map(NWSParsedGridSeries.init)
+        let windSpeedSeries = grid?.windSpeed.map(NWSParsedGridSeries.init)
+        let windGustSeries = grid?.windGust.map(NWSParsedGridSeries.init)
 
         return response.properties.periods.compactMap { period in
             guard let start = NWSParsing.date(period.startTime),
                   let end = NWSParsing.date(period.endTime),
+                  end > fetchedAt,
                   let temperature = NWSUnitConverter.forecastTemperatureFahrenheit(
                     period.temperature,
                     legacyUnit: period.temperatureUnit
@@ -91,29 +98,29 @@ enum NWSMapper {
             }
 
             let apparentTemperature = gridValue(
-                grid?.apparentTemperature,
+                apparentTemperatureSeries,
                 at: start,
                 transform: NWSUnitConverter.temperatureFahrenheit
             )
 
-            let gridHumidity = grid?.relativeHumidity?.value(at: start).map {
+            let gridHumidity = relativeHumiditySeries?.value(at: start).map {
                 max(0, min(1, $0 / 100))
             }
 
             let gridDewPoint = gridValue(
-                grid?.dewpoint,
+                dewPointSeries,
                 at: start,
                 transform: NWSUnitConverter.temperatureFahrenheit
             )
 
             let gridWindSpeed = gridValue(
-                grid?.windSpeed,
+                windSpeedSeries,
                 at: start,
                 transform: NWSUnitConverter.speedMPH
             )
 
             let gridWindGust = gridValue(
-                grid?.windGust,
+                windGustSeries,
                 at: start,
                 transform: NWSUnitConverter.speedMPH
             )
@@ -145,8 +152,32 @@ enum NWSMapper {
                     validFrom: start,
                     validTo: end,
                     fetchedAt: fetchedAt,
-                    expiresAt: end
+                    expiresAt: end,
+                    validatedAt: fetchedAt
                 )
+            )
+        }
+    }
+
+    static func preservingHourlyIdentity(
+        from base: [HourlyForecastItem],
+        in enriched: [HourlyForecastItem]
+    ) -> [HourlyForecastItem] {
+        let byDate = Dictionary(base.map { ($0.date, $0) }, uniquingKeysWith: { first, _ in first })
+        return enriched.map { item in
+            guard let existing = byDate[item.date] else { return item }
+            return HourlyForecastItem(
+                id: existing.id,
+                date: item.date,
+                temperature: item.temperature,
+                apparentTemperature: item.apparentTemperature,
+                condition: item.condition,
+                precipitationChance: item.precipitationChance,
+                humidity: item.humidity,
+                dewPoint: item.dewPoint,
+                windSpeed: item.windSpeed,
+                windGust: item.windGust,
+                source: item.source
             )
         }
     }
@@ -201,6 +232,8 @@ enum NWSMapper {
                 .compactMap { NWSParsing.date($0.endTime) }
                 .max()
 
+            guard let validTo, validTo > fetchedAt else { return nil }
+
             return DailyForecastItem(
                 date: date,
                 daytimeHigh: bucket.daytime.flatMap {
@@ -244,7 +277,8 @@ enum NWSMapper {
                     validFrom: validFrom,
                     validTo: validTo,
                     fetchedAt: fetchedAt,
-                    expiresAt: validTo
+                    expiresAt: validTo,
+                    validatedAt: fetchedAt
                 )
             )
         }
@@ -282,7 +316,8 @@ enum NWSMapper {
                     validFrom: effectiveAt,
                     validTo: expiresAt,
                     fetchedAt: fetchedAt,
-                    expiresAt: expiresAt
+                    expiresAt: expiresAt,
+                    validatedAt: fetchedAt
                 )
             )
         }
@@ -337,7 +372,7 @@ enum NWSMapper {
     }
 
     private static func gridValue(
-        _ series: NWSGridValueSeries?,
+        _ series: NWSParsedGridSeries?,
         at date: Date,
         transform: (Double, String?) -> Double?
     ) -> Double? {

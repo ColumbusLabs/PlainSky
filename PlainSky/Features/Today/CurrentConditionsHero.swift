@@ -4,7 +4,7 @@ struct CurrentConditionsHero: View {
     @Environment(WeatherStore.self) private var store
     @ScaledMetric(relativeTo: .largeTitle) private var temperatureSize: CGFloat = 96
 
-    let current: CurrentConditions
+    let current: WeatherProductState<CurrentConditions>
     let today: DailyForecastItem?
 
     private var highLowText: String? {
@@ -21,19 +21,26 @@ struct CurrentConditionsHero: View {
     }
 
     var body: some View {
+        let currentValue = current.value
+
         VStack(alignment: .leading, spacing: 2) {
-            Text(temperature(current.temperature))
+            Text(WeatherFormatters.temperature(
+                currentValue?.temperature,
+                unitSystem: store.unitSystem
+            ))
                 .font(.system(size: temperatureSize, weight: .medium))
                 .contentTransition(.numericText())
                 .minimumScaleFactor(0.5)
                 .lineLimit(1)
-                .accessibilityLabel("Current temperature \(temperature(current.temperature))")
+                .accessibilityLabel(currentValue.map {
+                    "Current temperature \(temperature($0.temperature))"
+                } ?? currentStatus)
 
-            Text(current.conditionDescription)
+            Text(currentValue?.conditionDescription ?? currentStatus)
                 .font(.title2.weight(.semibold))
 
             VStack(alignment: .leading, spacing: 2) {
-                if let apparentTemperature = current.apparentTemperature {
+                if let apparentTemperature = currentValue?.apparentTemperature {
                     Text("Feels like \(temperature(apparentTemperature))")
                 }
 
@@ -49,6 +56,10 @@ struct CurrentConditionsHero: View {
         .heroTextShadow()
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
+    }
+
+    private var currentStatus: String {
+        current.isLoading ? "Checking current conditions" : "Current conditions unavailable"
     }
 
     private func temperature(_ value: Double?) -> String {

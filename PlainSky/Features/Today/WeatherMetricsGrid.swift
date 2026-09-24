@@ -4,8 +4,9 @@ struct WeatherMetricsGrid: View {
     @Environment(WeatherStore.self) private var store
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    let current: CurrentConditions
-    let solar: SolarWeather?
+    let current: WeatherProductState<CurrentConditions>
+    let uvIndex: WeatherProductState<Int>
+    let solar: WeatherProductState<SolarWeather>
 
     @State private var selectedMetric: WeatherMetric?
 
@@ -23,6 +24,9 @@ struct WeatherMetricsGrid: View {
     }
 
     var body: some View {
+        let currentValue = current.value
+        let solarValue = solar.value
+
         WeatherCard {
             VStack(alignment: .leading, spacing: 12) {
                 SectionHeader(title: "Weather Metrics")
@@ -33,26 +37,26 @@ struct WeatherMetricsGrid: View {
                         icon: "wind",
                         title: "Wind",
                         value: WeatherFormatters.wind(
-                            speed: current.windSpeed,
+                            speed: currentValue?.windSpeed,
                             direction: nil,
                             unitSystem: store.unitSystem
                         ),
-                        detail: current.windDirection
+                        detail: currentValue?.windDirection ?? metricStatus(current)
                     )
 
                     metricButton(
                         .humidity,
                         icon: "drop.fill",
                         title: "Humidity",
-                        value: WeatherFormatters.percent(current.humidity),
-                        detail: nil
+                        value: WeatherFormatters.percent(currentValue?.humidity),
+                        detail: currentValue == nil ? metricStatus(current) : nil
                     )
 
                     metricButton(
                         .uv,
                         icon: "sun.max.fill",
                         title: "UV Index",
-                        value: solar?.uvIndex.map(String.init) ?? "—",
+                        value: uvIndex.value.map(String.init) ?? "—",
                         detail: uvDetail
                     )
 
@@ -61,18 +65,18 @@ struct WeatherMetricsGrid: View {
                         icon: "eye.fill",
                         title: "Visibility",
                         value: WeatherFormatters.visibility(
-                            current.visibilityMiles,
+                            currentValue?.visibilityMiles,
                             unitSystem: store.unitSystem
                         ),
-                        detail: nil
+                        detail: currentValue == nil ? metricStatus(current) : nil
                     )
 
                     metricButton(
                         .sun,
                         icon: "sunset.fill",
                         title: "Sunset",
-                        value: solar?.sunset.map(WeatherFormatters.hour) ?? "—",
-                        detail: solar == nil ? pendingDetail(for: .solarEvents) : nil
+                        value: solarValue?.sunset.map(WeatherFormatters.hour) ?? "—",
+                        detail: solarValue == nil ? metricStatus(solar) : nil
                     )
 
                     metricButton(
@@ -80,37 +84,41 @@ struct WeatherMetricsGrid: View {
                         icon: "gauge.with.dots.needle.33percent",
                         title: "Pressure",
                         value: WeatherFormatters.pressure(
-                            current.pressureMillibars,
+                            currentValue?.pressureMillibars,
                             unitSystem: store.unitSystem
                         ),
-                        detail: nil
+                        detail: currentValue == nil ? metricStatus(current) : nil
                     )
                 }
             }
         }
         .sheet(item: $selectedMetric) { metric in
-            WeatherMetricDetailSheet(
-                metric: metric,
-                current: current,
-                solar: solar
-            )
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
+            if let currentValue {
+                WeatherMetricDetailSheet(
+                    metric: metric,
+                    current: currentValue,
+                    solar: solarValue
+                )
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+            }
         }
     }
 
     private var uvDetail: String? {
-        if let uvIndex = solar?.uvIndex {
+        if let uvIndex = uvIndex.value {
             return WeatherFormatters.uvCategory(uvIndex)
         }
 
-        return pendingDetail(for: .uvIndex)
+        return metricStatus(uvIndex)
     }
 
-    private func pendingDetail(for product: WeatherProduct) -> String {
-        store.snapshot.availability(for: product).isLoading
-            ? "Loading…"
-            : "Unavailable"
+    private func metricStatus<Value: Sendable>(
+        _ state: WeatherProductState<Value>
+    ) -> String {
+        if state.isLoading { return "Loading…" }
+        if let message = state.message { return message }
+        return "Unavailable"
     }
 
     private func metricButton(
@@ -131,6 +139,7 @@ struct WeatherMetricsGrid: View {
             )
         }
         .buttonStyle(.plain)
+        .disabled(current.value == nil)
         .accessibilityHint("Opens \(title.lowercased()) details")
     }
 }

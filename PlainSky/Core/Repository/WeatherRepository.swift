@@ -1,20 +1,61 @@
 import Foundation
 
-@MainActor
 protocol WeatherRepository {
     func load(
         location: WeatherLocation,
         onPrimary: (WeatherSnapshot) async -> Void
     ) async throws -> WeatherSnapshot
+
+    func updates(
+        for location: WeatherLocation,
+        context: WeatherRefreshContext,
+        onUpdate: @escaping WeatherProductUpdateHandler
+    ) async throws
 }
 
 extension WeatherRepository {
     func load(location: WeatherLocation) async throws -> WeatherSnapshot {
         try await load(location: location, onPrimary: { _ in })
     }
+
+    func updates(
+        for location: WeatherLocation,
+        context: WeatherRefreshContext,
+        onUpdate: @escaping WeatherProductUpdateHandler
+    ) async throws {
+        let snapshot = try await load(location: location) { partial in
+            await publish(partial, identity: context.identity, onUpdate: onUpdate)
+        }
+        await publish(snapshot, identity: context.identity, onUpdate: onUpdate)
+        await onUpdate(WeatherProductUpdate(
+            identity: context.identity,
+            event: .terminal
+        ))
+    }
+
+    private func publish(
+        _ snapshot: WeatherSnapshot,
+        identity: WeatherRefreshIdentity,
+        onUpdate: WeatherProductUpdateHandler
+    ) async {
+        let state = WeatherScreenState(preview: snapshot)
+        await onUpdate(WeatherProductUpdate(identity: identity, event: .current(state.current)))
+        await onUpdate(WeatherProductUpdate(identity: identity, event: .hourly(state.hourly)))
+        await onUpdate(WeatherProductUpdate(identity: identity, event: .daily(state.daily)))
+        await onUpdate(WeatherProductUpdate(identity: identity, event: .alerts(state.alerts)))
+        await onUpdate(WeatherProductUpdate(
+            identity: identity,
+            event: .minutePrecipitation(state.minutePrecipitation)
+        ))
+        await onUpdate(WeatherProductUpdate(identity: identity, event: .uvIndex(state.uvIndex)))
+        await onUpdate(WeatherProductUpdate(
+            identity: identity,
+            event: .solarEvents(state.solarEvents)
+        ))
+        await onUpdate(WeatherProductUpdate(identity: identity, event: .radar(state.radar)))
+    }
 }
 
-@MainActor
 struct PreviewWeatherRepository: WeatherRepository {
     func load(
         location: WeatherLocation,
@@ -25,9 +66,36 @@ struct PreviewWeatherRepository: WeatherRepository {
         await onPrimary(snapshot)
         return snapshot
     }
+
+    func updates(
+        for location: WeatherLocation,
+        context: WeatherRefreshContext,
+        onUpdate: @escaping WeatherProductUpdateHandler
+    ) async throws {
+        var snapshot = MockWeather.snapshot
+        snapshot.location = location
+        await onUpdate(WeatherProductUpdate(
+            identity: context.identity,
+            event: .current(WeatherScreenState(preview: snapshot).current)
+        ))
+        let state = WeatherScreenState(preview: snapshot)
+        await onUpdate(WeatherProductUpdate(identity: context.identity, event: .hourly(state.hourly)))
+        await onUpdate(WeatherProductUpdate(identity: context.identity, event: .daily(state.daily)))
+        await onUpdate(WeatherProductUpdate(identity: context.identity, event: .alerts(state.alerts)))
+        await onUpdate(WeatherProductUpdate(
+            identity: context.identity,
+            event: .minutePrecipitation(state.minutePrecipitation)
+        ))
+        await onUpdate(WeatherProductUpdate(identity: context.identity, event: .uvIndex(state.uvIndex)))
+        await onUpdate(WeatherProductUpdate(
+            identity: context.identity,
+            event: .solarEvents(state.solarEvents)
+        ))
+        await onUpdate(WeatherProductUpdate(identity: context.identity, event: .radar(state.radar)))
+        await onUpdate(WeatherProductUpdate(identity: context.identity, event: .terminal))
+    }
 }
 
-@MainActor
 final class LiveWeatherRepository: WeatherRepository {
     private let primary: any PrimaryWeatherProviding
     private let supplemental: any SupplementalWeatherProviding
@@ -41,6 +109,142 @@ final class LiveWeatherRepository: WeatherRepository {
         self.primary = primary
         self.supplemental = supplemental
         self.supplementalTimeout = supplementalTimeout
+    }
+
+    func updates(
+        for location: WeatherLocation,
+        context: WeatherRefreshContext,
+        onUpdate: @escaping WeatherProductUpdateHandler
+    ) async throws {
+        try Task.checkCancellation()
+
+        let coordinator = CurrentProviderSelection()
+        let radarState: WeatherProductState<Void> = NOAARadarProvider.supports(location: location)
+            ? .available(
+                (),
+                WeatherValidationMetadata(
+                    provider: .noaaRadar,
+                    validatedAt: context.startedAt
+                )
+            )
+            : .unsupported("NOAA composite radar is not configured for this location.")
+        await onUpdate(WeatherProductUpdate(
+            identity: context.identity,
+            event: .radar(radarState)
+        ))
+        let supplementalProviderTask = Task {
+            try await supplemental.weather(for: location)
+        }
+        let supplementalDeadline = context.monotonicStart.advanced(by: context.requestBudgets.weatherKit)
+        let currentDeadline = context.monotonicStart.advanced(by: context.requestBudgets.current)
+        let currentDeadlineTask = Task {
+            do {
+                try await ContinuousClock().sleep(until: currentDeadline)
+            } catch {
+                return
+            }
+            if let state = await coordinator.currentDeadlineReached() {
+                await onUpdate(WeatherProductUpdate(
+                    identity: context.identity,
+                    event: .current(state)
+                ))
+            }
+        }
+        defer { currentDeadlineTask.cancel() }
+
+        let primaryTask = Task {
+            do {
+                try await primary.updates(
+                    for: location,
+                    context: context
+                ) { update in
+                    guard update.identity == context.identity else { return }
+
+                    if case let .current(state) = update.event {
+                        if let selected = await coordinator.receivedPrimary(state) {
+                            await onUpdate(WeatherProductUpdate(
+                                identity: context.identity,
+                                sourceRevision: update.sourceRevision,
+                                event: .current(selected)
+                            ))
+                        }
+                    } else {
+                        await onUpdate(update)
+                    }
+                }
+
+                if let selected = await coordinator.primaryFinished() {
+                    await onUpdate(WeatherProductUpdate(
+                        identity: context.identity,
+                        event: .current(selected)
+                    ))
+                }
+            } catch is CancellationError {
+                return
+            } catch {
+                await onUpdate(WeatherProductUpdate(
+                    identity: context.identity,
+                    event: .hourly(.unavailable("Unable to refresh the NWS hourly forecast."))
+                ))
+                await onUpdate(WeatherProductUpdate(
+                    identity: context.identity,
+                    event: .daily(.unavailable("Unable to refresh the NWS daily forecast."))
+                ))
+                await onUpdate(WeatherProductUpdate(
+                    identity: context.identity,
+                    event: .alerts(.unavailable("Unable to check National Weather Service alerts."))
+                ))
+                if let selected = await coordinator.primaryFailed() {
+                    await onUpdate(WeatherProductUpdate(
+                        identity: context.identity,
+                        event: .current(selected)
+                    ))
+                }
+            }
+        }
+
+        let supplementalTask = Task {
+            let outcome: SupplementalOutcome
+            do {
+                outcome = .success(try await value(
+                    of: supplementalProviderTask,
+                    deadline: supplementalDeadline
+                ))
+            } catch is CancellationError {
+                return
+            } catch {
+                outcome = .failure(failureMessage(for: error))
+            }
+
+            await emitSupplemental(
+                outcome,
+                location: location,
+                identity: context.identity,
+                onUpdate: onUpdate
+            )
+            if let selected = await coordinator.receivedSupplemental(outcome) {
+                await onUpdate(WeatherProductUpdate(
+                    identity: context.identity,
+                    event: .current(selected)
+                ))
+            }
+        }
+
+        try await withTaskCancellationHandler {
+            await primaryTask.value
+            await supplementalTask.value
+            try Task.checkCancellation()
+        } onCancel: {
+            currentDeadlineTask.cancel()
+            primaryTask.cancel()
+            supplementalProviderTask.cancel()
+            supplementalTask.cancel()
+        }
+
+        await onUpdate(WeatherProductUpdate(
+            identity: context.identity,
+            event: .terminal
+        ))
     }
 
     func load(
@@ -216,9 +420,19 @@ final class LiveWeatherRepository: WeatherRepository {
     }
 
     private func value(
-        of task: Task<SupplementalWeatherPayload, Error>
+        of task: Task<SupplementalWeatherPayload, Error>,
+        deadline: ContinuousClock.Instant? = nil
     ) async throws -> SupplementalWeatherPayload {
-        let timeout = supplementalTimeout
+        let timeout: Duration
+        if let deadline {
+            timeout = ContinuousClock().now.duration(to: deadline)
+            guard timeout > .zero else {
+                task.cancel()
+                throw SupplementalTimeoutError()
+            }
+        } else {
+            timeout = supplementalTimeout
+        }
         let resolver = SupplementalRaceResolver()
 
         return try await withTaskCancellationHandler {
@@ -258,6 +472,74 @@ final class LiveWeatherRepository: WeatherRepository {
         }
     }
 
+    private func emitSupplemental(
+        _ outcome: SupplementalOutcome,
+        location: WeatherLocation,
+        identity: WeatherRefreshIdentity,
+        onUpdate: WeatherProductUpdateHandler
+    ) async {
+        let state: WeatherScreenState
+        switch outcome {
+        case .loading:
+            return
+        case let .failure(message):
+            var snapshot = MockWeather.snapshot
+            snapshot.location = location
+            snapshot.minutePrecipitation = []
+            snapshot.solar = nil
+            snapshot.availability[.minutePrecipitation] = .unavailable(message)
+            snapshot.availability[.uvIndex] = .unavailable(message)
+            snapshot.availability[.solarEvents] = .unavailable(message)
+            state = WeatherScreenState(preview: snapshot)
+        case let .success(payload):
+            var availability = payload.availability
+            if availability[.minutePrecipitation] == nil {
+                availability[.minutePrecipitation] = payload.minutePrecipitation.isEmpty
+                    ? .unsupported("Next-hour precipitation is not available for this location.")
+                    : .available
+            }
+            if availability[.uvIndex] == nil {
+                availability[.uvIndex] = payload.solar?.uvIndex == nil
+                    ? .unsupported("UV data is not available for this location.")
+                    : .available
+            }
+            if availability[.solarEvents] == nil {
+                let hasSolarEvent = payload.solar?.sunrise != nil || payload.solar?.sunset != nil
+                availability[.solarEvents] = hasSolarEvent
+                    ? .available
+                    : .unsupported("Sunrise and sunset data is not available for this location.")
+            }
+
+            var current = payload.currentFallback ?? MockWeather.snapshot.current
+            current.source.validatedAt = Date()
+            let snapshot = WeatherSnapshot(
+                location: location,
+                current: current,
+                hourly: [],
+                daily: [],
+                minutePrecipitation: payload.minutePrecipitation,
+                alerts: [],
+                solar: payload.solar,
+                availability: availability,
+                fetchedAt: Date()
+            )
+            state = WeatherScreenState(preview: snapshot)
+        }
+
+        await onUpdate(WeatherProductUpdate(
+            identity: identity,
+            event: .minutePrecipitation(state.minutePrecipitation)
+        ))
+        await onUpdate(WeatherProductUpdate(
+            identity: identity,
+            event: .uvIndex(state.uvIndex)
+        ))
+        await onUpdate(WeatherProductUpdate(
+            identity: identity,
+            event: .solarEvents(state.solarEvents)
+        ))
+    }
+
     private func failureMessage(for error: Error) -> String {
         if let providerError = error as? ProviderError {
             return providerError.localizedDescription
@@ -277,7 +559,106 @@ final class LiveWeatherRepository: WeatherRepository {
     }
 }
 
-private enum SupplementalOutcome {
+/// Chooses one current-conditions group per refresh. NWS wins when it returns a
+/// usable observation before its deadline; the WeatherKit group is used only
+/// after NWS has failed or timed out. Fields are never mixed across providers.
+private actor CurrentProviderSelection {
+    private var didFinishPrimary = false
+    private var supplementalFinished = false
+    private var didResolveCurrent = false
+    private var didReachPrimaryDeadline = false
+    private var fallback: CurrentConditions?
+    private var supplementalFailure: String?
+
+    func receivedPrimary(
+        _ state: WeatherProductState<CurrentConditions>
+    ) -> WeatherProductState<CurrentConditions>? {
+        guard !didResolveCurrent else { return nil }
+        switch state {
+        case .loading:
+            return nil
+        case .available:
+            // A late NWS observation after its deadline is ignored so the
+            // selected provider cannot flicker within one refresh.
+            guard !didReachPrimaryDeadline else { return nil }
+            didFinishPrimary = true
+            didResolveCurrent = true
+            return state
+        case .unsupported, .unavailable:
+            didFinishPrimary = true
+            return resolveIfReady()
+        }
+    }
+
+    func primaryFinished() -> WeatherProductState<CurrentConditions>? {
+        guard !didResolveCurrent else { return nil }
+        didFinishPrimary = true
+        return resolveIfReady()
+    }
+
+    func primaryFailed() -> WeatherProductState<CurrentConditions>? {
+        primaryFinished()
+    }
+
+    func receivedSupplemental(
+        _ outcome: SupplementalOutcome
+    ) -> WeatherProductState<CurrentConditions>? {
+        guard !didResolveCurrent else { return nil }
+        supplementalFinished = true
+        switch outcome {
+        case .loading:
+            return nil
+        case let .success(payload):
+            fallback = payload.currentFallback
+        case let .failure(message):
+            supplementalFailure = message
+        }
+        // After the deadline the product already reads as unavailable; only a
+        // usable fallback changes what is shown.
+        if didReachPrimaryDeadline, fallback == nil {
+            didResolveCurrent = true
+            return nil
+        }
+        return resolveIfReady()
+    }
+
+    /// Stops waiting for NWS. The product becomes unavailable immediately so
+    /// its section does not spin past the budget, but a fresh approved
+    /// fallback that is still in flight may replace that state when it lands.
+    func currentDeadlineReached() -> WeatherProductState<CurrentConditions>? {
+        guard !didResolveCurrent, !didReachPrimaryDeadline else { return nil }
+        didReachPrimaryDeadline = true
+        didFinishPrimary = true
+        if let resolved = resolveIfReady() {
+            return resolved
+        }
+        return .unavailable(
+            "No fresh usable current conditions were available within the refresh budget."
+        )
+    }
+
+    private func resolveIfReady() -> WeatherProductState<CurrentConditions>? {
+        guard didFinishPrimary else { return nil }
+        if let fallback {
+            didResolveCurrent = true
+            return .available(
+                fallback,
+                WeatherValidationMetadata(
+                    source: fallback.source,
+                    validatedAt: Date()
+                )
+            )
+        }
+        guard supplementalFinished else { return nil }
+        didResolveCurrent = true
+        return .unavailable(
+            supplementalFailure
+                ?? "No fresh usable current conditions were available from the approved providers."
+        )
+    }
+}
+
+private enum SupplementalOutcome: Sendable {
     case loading
     case success(SupplementalWeatherPayload)
     case failure(String)
