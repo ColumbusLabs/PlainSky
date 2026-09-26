@@ -48,8 +48,8 @@ struct CurrentConditionsHero: View {
                     Text(highLowText)
                 }
             }
-            .font(.body.weight(.medium))
-            .foregroundStyle(WeatherTheme.heroSecondaryText)
+            .font(.body.weight(.semibold))
+            .foregroundStyle(WeatherTheme.heroText)
             .padding(.top, 2)
         }
         .foregroundStyle(WeatherTheme.heroText)

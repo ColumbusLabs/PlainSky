@@ -155,4 +155,14 @@ struct NWSAlertProperties: Decodable, Sendable {
     let effective: String
     let expires: String?
     let senderName: String?
+    var messageType: String? = nil
+    var references: [NWSAlertReference]? = nil
+}
+
+struct NWSAlertReference: Decodable, Sendable {
+    let id: String
+
+    private enum CodingKeys: String, CodingKey {
+        case id = "@id"
+    }
 }

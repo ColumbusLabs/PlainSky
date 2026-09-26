@@ -21,9 +21,11 @@ The app does not average providers or invent meteorology.
 - Today dashboard with source/freshness metadata
 - provider-supplied feels-like
 - hourly and daily forecasts
-- official alerts
+- official alerts, with notifications for NWS warnings, watches, advisories, and statements (toggle each in Settings)
+- "Rain begins around 1:25 PM" notifications from Apple next-hour precipitation
+- small home screen widget: current temperature, today's high/low, the next three hours
 - live animated NOAA radar
-- saved places and current-location refresh
+- saved places and current-location refresh (Settings tab)
 - U.S./Metric units
 - Light/Dark/System appearance
 - accessibility / Dynamic Type / Reduce Motion support

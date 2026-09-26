@@ -35,6 +35,12 @@ targets:
           UIColorName: LaunchBackground
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+        UIBackgroundModes:
+          - fetch
+        BGTaskSchedulerPermittedIdentifiers:
+          - com.columbuslabs.weatherapp.refresh
+    dependencies:
+      - target: PlainSkyWidget
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.columbuslabs.weatherapp
@@ -48,6 +54,35 @@ targets:
       gatherCoverageData: true
       testTargets:
         - PlainSkyTests
+
+  PlainSkyWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: PlainSkyWidget
+        excludes:
+          - Info.plist
+      # The widget reuses the app's validated NWS pipeline and models.
+      - path: PlainSky/Core
+        excludes:
+          - Navigation/InteractivePopGesture.swift
+      - path: PlainSky/Features/Radar/RadarPlaybackState.swift
+    info:
+      path: PlainSkyWidget/Info.plist
+      properties:
+        CFBundleDisplayName: PlainSky
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.columbuslabs.weatherapp.widget
+        PRODUCT_NAME: PlainSkyWidget
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: PlainSkyWidget/PlainSkyWidget.entitlements
+        TARGETED_DEVICE_FAMILY: "1"
+        SKIP_INSTALL: YES
 
   PlainSkyTests:
     type: bundle.unit-test

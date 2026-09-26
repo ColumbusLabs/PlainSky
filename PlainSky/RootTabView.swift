@@ -51,7 +51,21 @@ struct RootTabView: View {
         .toolbarBackground(.ultraThinMaterial, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
         .task {
+            syncSharedState()
+            WeatherBackgroundRefresh.schedule()
+            if await WeatherNotifier.shared.authorizationStatus() == .notDetermined {
+                await WeatherNotifier.shared.requestAuthorization()
+            }
+        }
+        .task {
             await store.refreshIfNeeded(trigger: .startup)
+        }
+        .onChange(of: store.savedLocations) { _, _ in syncSharedState() }
+        .onChange(of: store.unitSystem) { _, _ in syncSharedState() }
+        .onChange(of: store.isRefreshing) { wasRefreshing, isRefreshing in
+            guard wasRefreshing, !isRefreshing else { return }
+            let state = store.screenState
+            Task { await WeatherBackgroundRefresh.didRefresh(state) }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
@@ -61,6 +75,9 @@ struct RootTabView: View {
                 }
             } else {
                 store.prepareForInactivity()
+                if phase == .background {
+                    WeatherBackgroundRefresh.schedule()
+                }
             }
         }
         .task(id: scenePhase) {
@@ -83,6 +100,16 @@ struct RootTabView: View {
                     .accessibilityHidden(true)
             }
         }
+    }
+}
+
+extension RootTabView {
+    private func syncSharedState() {
+        WeatherBackgroundRefresh.sync(
+            savedLocations: store.savedLocations,
+            selected: store.screenState.location,
+            unitSystem: store.unitSystem
+        )
     }
 }
 

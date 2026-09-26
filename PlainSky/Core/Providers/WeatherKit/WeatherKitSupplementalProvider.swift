@@ -102,6 +102,9 @@ struct WeatherKitSupplementalProvider: SupplementalWeatherProviding {
                     intensity: millimetersPerHour(
                         sample.precipitationIntensity
                     ),
+                    kind: sample.precipitation == .none
+                        ? nil
+                        : sample.precipitation.description.lowercased(),
                     source: minuteSource
                 )
             }

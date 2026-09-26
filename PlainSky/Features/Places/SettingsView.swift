@@ -12,7 +12,8 @@ struct SettingsView: View {
 
     var body: some View {
         ZStack {
-            WeatherBackdrop(style: .calm)
+            // Same sky as Today so switching tabs feels continuous.
+            WeatherBackdrop(style: .current(for: store.screenState))
 
             ScrollView {
                 LazyVStack(spacing: WeatherTheme.sectionSpacing) {
@@ -20,9 +21,8 @@ struct SettingsView: View {
 
                     PlacesSection()
 
-                    SectionHeader(title: "Preferences")
-                        .padding(.horizontal, 4)
-                        .padding(.top, 12)
+                    NotificationSettingsCard()
+                        .padding(.top, 8)
 
                     WeatherCard {
                         VStack(alignment: .leading, spacing: 14) {
@@ -110,16 +110,36 @@ struct SettingsView: View {
         HStack {
             Text("Settings")
                 .font(.largeTitle.bold())
-                .foregroundStyle(WeatherTheme.primaryText)
+                .foregroundStyle(WeatherTheme.heroText)
+                .heroTextShadow()
                 .accessibilityAddTraits(.isHeader)
 
             Spacer()
 
             if store.isRefreshing {
                 ProgressView()
-                    .tint(WeatherTheme.primaryText)
+                    .tint(WeatherTheme.heroText)
             }
         }
+    }
+}
+
+/// Section title that sits directly on the sky backdrop.
+struct HeroSectionTitle: View {
+    let title: String
+
+    init(_ title: String) {
+        self.title = title
+    }
+
+    var body: some View {
+        Text(title)
+            .font(.title3.weight(.semibold))
+            .foregroundStyle(WeatherTheme.heroText)
+            .heroTextShadow()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 4)
+            .accessibilityAddTraits(.isHeader)
     }
 }
 

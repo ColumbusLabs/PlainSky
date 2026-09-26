@@ -225,6 +225,8 @@ struct MinutePrecipitationSample: Codable, Identifiable, Hashable, Sendable {
     var date: Date
     var probability: Double
     var intensity: Double?
+    /// Provider precipitation type, e.g. "rain" or "snow", when known.
+    var kind: String?
     var source: WeatherSourceMetadata
 
     init(
@@ -232,12 +234,14 @@ struct MinutePrecipitationSample: Codable, Identifiable, Hashable, Sendable {
         date: Date,
         probability: Double,
         intensity: Double? = nil,
+        kind: String? = nil,
         source: WeatherSourceMetadata
     ) {
         self.id = id
         self.date = date
         self.probability = probability
         self.intensity = intensity
+        self.kind = kind
         self.source = source
     }
 }
@@ -261,6 +265,10 @@ struct WeatherAlert: Codable, Identifiable, Hashable, Sendable {
     var instructions: String?
     var issuingOffice: String?
     var source: WeatherSourceMetadata
+    /// NWS CAP message type: "Alert", "Update", or "Cancel".
+    var messageType: String? = nil
+    /// IDs of earlier messages this one updates or replaces.
+    var referencedIDs: [String]? = nil
 }
 
 struct SolarWeather: Codable, Hashable, Sendable {

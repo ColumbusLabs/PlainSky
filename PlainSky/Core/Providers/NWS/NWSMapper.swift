@@ -30,7 +30,7 @@ enum NWSMapper {
             ?? NWSUnitConverter.temperatureFahrenheit(observation.properties.windChill)
 
         let description = nonEmpty(observation.properties.textDescription)
-            ?? "Observed conditions"
+            ?? genericObservationDescription
 
         return CurrentConditions(
             temperature: temperature,
@@ -284,6 +284,9 @@ enum NWSMapper {
         }
     }
 
+    /// Shown when a station reports values but no text description.
+    static let genericObservationDescription = "Observed conditions"
+
     static func alerts(
         collection: NWSAlertCollection,
         fetchedAt: Date
@@ -318,7 +321,9 @@ enum NWSMapper {
                     fetchedAt: fetchedAt,
                     expiresAt: expiresAt,
                     validatedAt: fetchedAt
-                )
+                ),
+                messageType: nonEmpty(feature.properties.messageType),
+                referencedIDs: feature.properties.references?.map(\.id)
             )
         }
         .sorted { lhs, rhs in

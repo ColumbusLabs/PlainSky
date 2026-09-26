@@ -11,9 +11,7 @@ struct PlacesSection: View {
 
     var body: some View {
         VStack(spacing: WeatherTheme.sectionSpacing) {
-            SectionHeader(title: "Places")
-                .padding(.horizontal, 4)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            HeroSectionTitle("Places")
 
             Button {
                 showingSearch = true

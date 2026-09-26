@@ -95,10 +95,17 @@ struct WeatherBackdrop: View {
                     .saturation(style.saturation)
                     .overlay(style.tint)
 
+                // Deepens the sky behind the header so white text stays
+                // readable over bright clouds without hiding the photo.
                 LinearGradient(
-                    colors: [WeatherTheme.primaryText.opacity(0.16), .clear],
+                    stops: [
+                        .init(color: WeatherTheme.primaryText.opacity(0.32), location: 0),
+                        .init(color: WeatherTheme.primaryText.opacity(0.26), location: 0.3),
+                        .init(color: WeatherTheme.primaryText.opacity(0.12), location: 0.45),
+                        .init(color: .clear, location: 0.6)
+                    ],
                     startPoint: .top,
-                    endPoint: UnitPoint(x: 0.5, y: 0.35)
+                    endPoint: .bottom
                 )
             }
         }

@@ -50,8 +50,11 @@ extension View {
     }
 
     /// Keeps white hero text legible over the brightest parts of the sky image.
+    /// A tight edge shadow defines letterforms against white clouds; the soft
+    /// one lifts the text off the photo.
     func heroTextShadow() -> some View {
-        shadow(color: WeatherTheme.primaryText.opacity(0.28), radius: 6, y: 1)
+        shadow(color: WeatherTheme.primaryText.opacity(0.45), radius: 1.5, y: 1)
+            .shadow(color: WeatherTheme.primaryText.opacity(0.3), radius: 8, y: 2)
     }
 }
 
