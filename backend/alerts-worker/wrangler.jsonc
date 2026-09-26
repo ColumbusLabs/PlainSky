@@ -19,6 +19,7 @@
     "APNS_BUNDLE_ID": "com.columbuslabs.weatherapp"
   }
   // Secrets (set with `wrangler secret put`, never committed):
-  //   APNS_KEY_ID      – 10-character key ID from Apple Developer → Keys
-  //   APNS_PRIVATE_KEY – contents of the AuthKey_XXXX.p8 file
+  //   APNS_SANDBOX_KEY_ID / APNS_SANDBOX_PRIVATE_KEY
+  //   APNS_PRODUCTION_KEY_ID / APNS_PRODUCTION_PRIVATE_KEY
+  //   Use separate topic-specific keys for com.columbuslabs.weatherapp.
 }

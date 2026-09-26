@@ -13,8 +13,10 @@ interface Env {
   DB: D1Database;
   APNS_TEAM_ID: string;
   APNS_BUNDLE_ID: string;
-  APNS_KEY_ID?: string;
-  APNS_PRIVATE_KEY?: string;
+  APNS_SANDBOX_KEY_ID?: string;
+  APNS_SANDBOX_PRIVATE_KEY?: string;
+  APNS_PRODUCTION_KEY_ID?: string;
+  APNS_PRODUCTION_PRIVATE_KEY?: string;
 }
 
 const NWS_HEADERS = {
@@ -44,12 +46,14 @@ function toDevice(row: DeviceRow): Device {
   };
 }
 
-function apnsConfig(env: Env): APNsConfig | null {
-  if (!env.APNS_KEY_ID || !env.APNS_PRIVATE_KEY) return null;
+function apnsConfig(env: Env, environment: "sandbox" | "production"): APNsConfig | null {
+  const keyId = environment === "sandbox" ? env.APNS_SANDBOX_KEY_ID : env.APNS_PRODUCTION_KEY_ID;
+  const privateKey = environment === "sandbox" ? env.APNS_SANDBOX_PRIVATE_KEY : env.APNS_PRODUCTION_PRIVATE_KEY;
+  if (!keyId || !privateKey) return null;
   return {
     teamId: env.APNS_TEAM_ID,
-    keyId: env.APNS_KEY_ID,
-    privateKey: env.APNS_PRIVATE_KEY,
+    keyId,
+    privateKey,
     bundleId: env.APNS_BUNDLE_ID,
   };
 }
@@ -88,7 +92,6 @@ async function zonesFor(latitude: number, longitude: number): Promise<string[]> 
 async function deliver(env: Env, alerts: NWSAlert[], devices: Device[], now: number): Promise<number> {
   if (alerts.length === 0 || devices.length === 0) return 0;
 
-  const config = apnsConfig(env);
   const tokens = devices.map((d) => d.token);
   const deliveredRows: { alert_id: string; token: string }[] = [];
   // D1 caps bound parameters per statement, so look tokens up in chunks.
@@ -117,6 +120,7 @@ async function deliver(env: Env, alerts: NWSAlert[], devices: Device[], now: num
 
   const jobs: Promise<void>[] = [];
   for (const device of devices) {
+    const config = apnsConfig(env, device.environment);
     const deliveredIds = deliveredByToken.get(device.token) ?? new Set<string>();
     for (const alert of alerts) {
       const decision = decide(alert, device, deliveredIds, now);
@@ -203,6 +207,7 @@ async function register(request: Request, env: Env): Promise<Response> {
   if (environment !== "sandbox" && environment !== "production") return json({ error: "invalid environment" }, 400);
   if (!(Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180)) return json({ error: "invalid coordinates" }, 400);
   if (!preferences) return json({ error: "invalid preferences" }, 400);
+  if (!apnsConfig(env, environment)) return json({ error: "push service unavailable" }, 503);
 
   const lat = coarse(latitude);
   const lon = coarse(longitude);
@@ -242,7 +247,13 @@ export default {
 
     if (request.method === "GET" && url.pathname === "/health") {
       const devices = await env.DB.prepare("SELECT COUNT(*) AS count FROM devices").first<{ count: number }>();
-      return json({ ok: true, devices: devices?.count ?? 0, apnsConfigured: apnsConfig(env) !== null });
+      return json({
+        ok: true,
+        devices: devices?.count ?? 0,
+        apnsConfigured: apnsConfig(env, "sandbox") !== null && apnsConfig(env, "production") !== null,
+        apnsSandboxConfigured: apnsConfig(env, "sandbox") !== null,
+        apnsProductionConfigured: apnsConfig(env, "production") !== null,
+      });
     }
 
     if (request.method === "POST" && url.pathname === "/v1/devices") {

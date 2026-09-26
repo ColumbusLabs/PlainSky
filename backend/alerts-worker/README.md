@@ -12,13 +12,19 @@ Cloudflare Worker that pushes official NWS alerts to PlainSky users within about
 
 Rain notices stay on the phone (Apple next-hour precipitation); they are not sent by this worker.
 
+Create two APNs keys in Apple Developer, each restricted to the
+`com.columbuslabs.weatherapp` topic: one for Sandbox and one for Production.
+Keep the downloaded `.p8` files outside this public repository.
+
 ## Setup
 
 ```bash
 npm install
 npm run migrate          # apply D1 migrations
-npx wrangler secret put APNS_KEY_ID
-npx wrangler secret put APNS_PRIVATE_KEY < AuthKey_XXXXXXXXXX.p8
+npx wrangler secret put APNS_SANDBOX_KEY_ID
+npx wrangler secret put APNS_SANDBOX_PRIVATE_KEY < AuthKey_SANDBOX_ID.p8
+npx wrangler secret put APNS_PRODUCTION_KEY_ID
+npx wrangler secret put APNS_PRODUCTION_PRIVATE_KEY < AuthKey_PRODUCTION_ID.p8
 npm run deploy
 npm test
 ```
