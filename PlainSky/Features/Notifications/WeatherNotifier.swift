@@ -169,7 +169,9 @@ final class WeatherNotifier {
 
         var state = settings.notifierState
         let planned = WeatherNotificationPlanner.plan(
-            alerts: alerts,
+            // Once the alerts server has this device, it pushes NWS alerts
+            // within a minute; checking here too would deliver them twice.
+            alerts: settings.serverAlertsRegistered ? nil : alerts,
             minutePrecipitation: minutePrecipitation,
             place: place,
             preferences: preferences,

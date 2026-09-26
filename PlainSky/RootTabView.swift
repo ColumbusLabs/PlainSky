@@ -56,6 +56,7 @@ struct RootTabView: View {
             if await WeatherNotifier.shared.authorizationStatus() == .notDetermined {
                 await WeatherNotifier.shared.requestAuthorization()
             }
+            await AlertPushRegistration.shared.registerForRemoteNotificationsIfAllowed()
         }
         .task {
             await store.refreshIfNeeded(trigger: .startup)
@@ -70,6 +71,7 @@ struct RootTabView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 store.prepareForActive()
+                Task { await AlertPushRegistration.shared.registerForRemoteNotificationsIfAllowed() }
                 Task {
                     await store.refreshIfNeeded(trigger: .foreground)
                 }
@@ -110,6 +112,7 @@ extension RootTabView {
             selected: store.screenState.location,
             unitSystem: store.unitSystem
         )
+        Task { await AlertPushRegistration.shared.sync() }
     }
 }
 

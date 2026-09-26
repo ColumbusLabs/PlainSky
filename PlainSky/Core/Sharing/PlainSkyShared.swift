@@ -142,6 +142,10 @@ struct SharedWeatherSettings: @unchecked Sendable {
         static let widgetSnapshot = "shared.widgetSnapshot"
         static let notificationPreferences = "shared.notificationPreferences"
         static let notifierState = "shared.notifierState"
+        static let pushToken = "shared.pushToken"
+        static let serverAlertsRegistered = "shared.serverAlertsRegistered"
+        static let registrationFingerprint = "shared.registrationFingerprint"
+        static let registeredAt = "shared.registeredAt"
     }
 
     private let defaults: UserDefaults
@@ -182,6 +186,29 @@ struct SharedWeatherSettings: @unchecked Sendable {
     var notifierState: WeatherNotifierState {
         get { decode(WeatherNotifierState.self, key: Key.notifierState) ?? .init() }
         nonmutating set { encode(newValue, key: Key.notifierState) }
+    }
+
+    /// Hex APNs device token for this install.
+    var pushToken: String? {
+        get { defaults.string(forKey: Key.pushToken) }
+        nonmutating set { defaults.set(newValue, forKey: Key.pushToken) }
+    }
+
+    /// True once the alerts server accepted this device, so on-device alert
+    /// checks stand down and alerts are not delivered twice.
+    var serverAlertsRegistered: Bool {
+        get { defaults.bool(forKey: Key.serverAlertsRegistered) }
+        nonmutating set { defaults.set(newValue, forKey: Key.serverAlertsRegistered) }
+    }
+
+    var registrationFingerprint: String? {
+        get { defaults.string(forKey: Key.registrationFingerprint) }
+        nonmutating set { defaults.set(newValue, forKey: Key.registrationFingerprint) }
+    }
+
+    var registeredAt: Date? {
+        get { defaults.object(forKey: Key.registeredAt) as? Date }
+        nonmutating set { defaults.set(newValue, forKey: Key.registeredAt) }
     }
 
     private func decode<T: Decodable>(_ type: T.Type, key: String) -> T? {

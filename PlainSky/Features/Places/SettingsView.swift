@@ -78,7 +78,7 @@ struct SettingsView: View {
                             .font(.subheadline)
                             .foregroundStyle(WeatherTheme.primaryText)
 
-                            Text("When live data is enabled, selected coordinates will necessarily be sent to the weather and map providers needed to answer the request.")
+                            Text("Selected coordinates are sent to the weather and map providers needed to answer each request. While notifications are on, your alert place, rounded to about 1 km, is stored on PlainSky's alert server so it can push NWS alerts; turning notifications off deletes it.")
                                 .font(.caption)
                                 .foregroundStyle(WeatherTheme.secondaryText)
                         }

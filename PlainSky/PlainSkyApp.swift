@@ -4,6 +4,7 @@ import UserNotifications
 
 @main
 struct PlainSkyApp: App {
+    @UIApplicationDelegateAdaptor(PlainSkyAppDelegate.self) private var appDelegate
     @State private var store = AppEnvironment.makeWeatherStore()
     @AppStorage("hasCompletedWeatherOnboarding") private var hasCompletedOnboarding = false
 

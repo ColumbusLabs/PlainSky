@@ -27,7 +27,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Your location is used to show weather for where you are. Your location is not stored on our servers.</string>
+	<string>Your location is used to show weather for where you are. If weather alerts are on, an approximate location (about 1 km) is stored only to send you alerts.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

@@ -39,6 +39,7 @@ struct NotificationSettingsCard: View {
                         Task {
                             await WeatherNotifier.shared.requestAuthorization()
                             await refreshStatus()
+                            await AlertPushRegistration.shared.registerForRemoteNotificationsIfAllowed()
                         }
                     }
                 }
@@ -73,7 +74,7 @@ struct NotificationSettingsCard: View {
                     .fixedSize()
                 }
 
-                Text("Also used by the home screen widget. iOS decides how often PlainSky can check in the background, so alerts can arrive late or not at all if the app is force-quit. Always follow official warnings from local authorities.")
+                Text(footnote)
                     .font(.caption)
                     .foregroundStyle(WeatherTheme.tertiaryText)
             }
@@ -84,6 +85,7 @@ struct NotificationSettingsCard: View {
         }
         .onChange(of: preferences) { _, newValue in
             SharedWeatherSettings().notificationPreferences = newValue
+            Task { await AlertPushRegistration.shared.sync() }
         }
         .onChange(of: homePlaceID) { _, newValue in
             SharedWeatherSettings().homePlaceID = newValue
@@ -93,6 +95,13 @@ struct NotificationSettingsCard: View {
                 unitSystem: store.unitSystem
             )
         }
+    }
+
+    private var footnote: String {
+        let delivery = SharedWeatherSettings().serverAlertsRegistered
+            ? "NWS alerts are pushed to this iPhone within about a minute of being issued."
+            : "NWS alerts are checked when iOS lets PlainSky refresh in the background."
+        return "\(delivery) Precipitation notices rely on background refresh. The place is also used by the home screen widget; an approximate location (about 1 km) is stored on PlainSky's alert server while alerts are on. Always follow official guidance from local authorities."
     }
 
     private var divider: some View {

@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "plainsky-alerts",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "observability": { "enabled": true },
+  // Check NWS for new alerts every minute.
+  "triggers": { "crons": ["* * * * *"] },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "plainsky-alerts-db",
+      "database_id": "0559d195-1f9f-4c42-b22b-f3fac2c026e2",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "APNS_TEAM_ID": "78PXX669LQ",
+    "APNS_BUNDLE_ID": "com.columbuslabs.weatherapp"
+  }
+  // Secrets (set with `wrangler secret put`, never committed):
+  //   APNS_KEY_ID      – 10-character key ID from Apple Developer → Keys
+  //   APNS_PRIVATE_KEY – contents of the AuthKey_XXXX.p8 file
+}

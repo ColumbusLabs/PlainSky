@@ -19,6 +19,7 @@ enum WeatherBackgroundRefresh {
 
     static func perform() async {
         schedule()
+        await AlertPushRegistration.shared.sync()
         guard AppEnvironment.dataMode != .preview, let place = settings.homePlace else { return }
 
         // Alerts are fetched on their own so a failed forecast or observation
