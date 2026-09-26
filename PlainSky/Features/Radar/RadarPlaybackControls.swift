@@ -38,87 +38,46 @@ struct RadarPlaybackControls: View {
         return remainder == 0 ? "\(hours) hr" : "\(hours) hr \(remainder) min"
     }
 
+    private var isLatestObserved: Bool {
+        playback.selectedIndex == playback.latestObservedIndex
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .center, spacing: 12) {
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 8) {
-                        Text(playback.selectedFrame.map { WeatherFormatters.hour($0.timestamp) } ?? "—")
-                            .font(.title3.weight(.semibold).monospacedDigit())
-                            .foregroundStyle(WeatherTheme.primaryText)
-                            .contentTransition(.numericText())
+            HStack(alignment: .center, spacing: 14) {
+                playButton
 
-                        if isShowingForecast {
-                            Text("Forecast")
-                                .font(.caption2.weight(.bold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 3)
-                                .background(WeatherTheme.accent, in: Capsule())
-                        }
-                    }
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(playback.selectedFrame.map { WeatherFormatters.hour($0.timestamp) } ?? "—")
+                        .font(.title2.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(WeatherTheme.primaryText)
+                        .contentTransition(.numericText())
+                        .animation(.snappy(duration: 0.2), value: playback.selectedIndex)
 
                     Text(ageLabel)
-                        .font(.caption)
+                        .font(.footnote)
                         .foregroundStyle(WeatherTheme.secondaryText)
+                        .lineLimit(1)
                 }
                 .accessibilityElement(children: .combine)
 
                 Spacer(minLength: 8)
 
-                RadarLegend()
-                    .frame(width: 128)
+                statusChip
             }
 
-            HStack(spacing: 12) {
-                Button {
-                    playback.togglePlayback()
-                } label: {
-                    Image(systemName: playback.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 44, height: 44)
-                        .background(
-                            playbackDisabled ? WeatherTheme.tertiaryText : WeatherTheme.accent,
-                            in: Circle()
-                        )
-                        .shadow(color: WeatherTheme.accent.opacity(playbackDisabled ? 0 : 0.35), radius: 6, y: 2)
-                }
-                .disabled(playbackDisabled)
-                .accessibilityLabel(playback.isPlaying ? "Pause radar" : "Play radar")
-                .accessibilityHint(
-                    reduceMotion && playback.frames.count > 1
-                        ? "Playback is disabled while Reduce Motion is enabled. Use the timeline slider instead."
-                        : ""
-                )
+            VStack(spacing: 6) {
+                RadarTimeline(playback: playback)
 
-                VStack(spacing: 4) {
-                    timeline
-
-                    if let first = playback.frames.first, let last = playback.frames.last {
-                        timelineLabels(first: first, last: last)
-                            .font(.caption2.monospacedDigit())
-                            .foregroundStyle(WeatherTheme.tertiaryText)
-                            .accessibilityHidden(true)
-                    }
+                if let first = playback.frames.first, let last = playback.frames.last {
+                    timelineLabels(first: first, last: last)
+                        .font(.caption2.weight(.medium).monospacedDigit())
+                        .foregroundStyle(WeatherTheme.tertiaryText)
+                        .accessibilityHidden(true)
                 }
             }
 
-            if isPreparing {
-                HStack(spacing: 8) {
-                    ProgressView(value: loadingProgress)
-                        .tint(WeatherTheme.accent)
-                    Text(
-                        playback.isPlaying && !playback.isNextFrameReady
-                            ? "Buffering…"
-                            : "Loading frames \(Int(loadingProgress * 100))%"
-                    )
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(WeatherTheme.secondaryText)
-                        .fixedSize()
-                }
-                .accessibilityElement(children: .combine)
-            }
+            RadarLegend()
 
             if reduceMotion && playback.frames.count > 1 {
                 Text("Reduce Motion is on. Animation stays paused; drag the timeline instead.")
@@ -126,8 +85,80 @@ struct RadarPlaybackControls: View {
                     .foregroundStyle(WeatherTheme.secondaryText)
             }
         }
-        .padding(WeatherTheme.cardPadding)
-        .weatherSurface()
+        .padding(.horizontal, 18)
+        .padding(.vertical, 16)
+        .radarGlass(in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+    }
+
+    private var playButton: some View {
+        Button {
+            playback.togglePlayback()
+        } label: {
+            Image(systemName: playback.isPlaying ? "pause.fill" : "play.fill")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(.white)
+                .contentTransition(.symbolEffect(.replace))
+                .frame(width: 48, height: 48)
+                .background(
+                    playbackDisabled
+                        ? AnyShapeStyle(WeatherTheme.tertiaryText)
+                        : AnyShapeStyle(WeatherTheme.accent.gradient),
+                    in: Circle()
+                )
+                .shadow(color: WeatherTheme.accent.opacity(playbackDisabled ? 0 : 0.35), radius: 8, y: 3)
+        }
+        .buttonStyle(.plain)
+        .disabled(playbackDisabled)
+        .accessibilityLabel(playback.isPlaying ? "Pause radar" : "Play radar")
+        .accessibilityHint(
+            reduceMotion && playback.frames.count > 1
+                ? "Playback is disabled while Reduce Motion is enabled. Use the timeline instead."
+                : ""
+        )
+    }
+
+    @ViewBuilder
+    private var statusChip: some View {
+        Group {
+            if isPreparing {
+                HStack(spacing: 6) {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .tint(WeatherTheme.secondaryText)
+                    Text(
+                        playback.isPlaying && !playback.isNextFrameReady
+                            ? "Buffering"
+                            : "Loading \(Int(loadingProgress * 100))%"
+                    )
+                    .monospacedDigit()
+                }
+                .foregroundStyle(WeatherTheme.secondaryText)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(WeatherTheme.divider, in: Capsule())
+            } else if isShowingForecast {
+                chipLabel("Forecast", dot: Color(red: 0.55, green: 0.36, blue: 0.96))
+            } else if isLatestObserved {
+                chipLabel("Live", dot: Color(red: 0.2, green: 0.78, blue: 0.35))
+            } else if playback.selectedFrame != nil {
+                chipLabel("Past", dot: WeatherTheme.tertiaryText)
+            }
+        }
+        .font(.caption.weight(.semibold))
+        .accessibilityElement(children: .combine)
+    }
+
+    private func chipLabel(_ title: String, dot: Color) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(dot)
+                .frame(width: 7, height: 7)
+            Text(title)
+                .foregroundStyle(WeatherTheme.primaryText)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(WeatherTheme.divider, in: Capsule())
     }
 
     private func timelineLabels(first: RadarFrame, last: RadarFrame) -> some View {
@@ -141,9 +172,8 @@ struct RadarPlaybackControls: View {
                let nowIndex = playback.latestObservedIndex,
                playback.frames.count > 1 {
                 GeometryReader { proxy in
-                    let thumbInset: CGFloat = 14
                     let fraction = CGFloat(nowIndex) / CGFloat(playback.frames.count - 1)
-                    let x = thumbInset + fraction * (proxy.size.width - thumbInset * 2)
+                    let x = RadarTimeline.inset + fraction * (proxy.size.width - RadarTimeline.inset * 2)
 
                     Text("Now")
                         .fontWeight(.semibold)
@@ -154,31 +184,100 @@ struct RadarPlaybackControls: View {
             }
         }
     }
+}
 
-    @ViewBuilder
-    private var timeline: some View {
-        if playback.frames.count > 1 {
-            Slider(
-                value: Binding(
-                    get: { Double(playback.selectedIndex) },
-                    set: { playback.select(index: Int($0.rounded())) }
-                ),
-                in: 0...Double(playback.frames.count - 1),
-                step: 1
+/// Segmented scrubber: one tick per frame. Played frames fill with the accent,
+/// forecast frames use a violet tint, and frames still downloading stay faint.
+private struct RadarTimeline: View {
+    static let inset: CGFloat = 10
+
+    @Bindable var playback: RadarPlaybackState
+    @State private var isScrubbing = false
+
+    private static let forecastTint = Color(red: 0.55, green: 0.36, blue: 0.96)
+
+    var body: some View {
+        GeometryReader { proxy in
+            let count = playback.frames.count
+            let width = proxy.size.width - Self.inset * 2
+            let thumbX = count > 1
+                ? Self.inset + CGFloat(playback.selectedIndex) / CGFloat(count - 1) * width
+                : Self.inset
+
+            ZStack(alignment: .leading) {
+                if count > 1 {
+                    HStack(spacing: 3) {
+                        ForEach(Array(playback.frames.enumerated()), id: \.element.id) { index, frame in
+                            Capsule()
+                                .fill(tickColor(index: index, frame: frame))
+                                .frame(height: 6)
+                        }
+                    }
+                    .padding(.horizontal, Self.inset - 2)
+                    .animation(.easeOut(duration: 0.2), value: playback.readyFrameIDs)
+
+                    if let nowIndex = playback.latestObservedIndex, playback.firstForecastIndex != nil {
+                        Capsule()
+                            .fill(WeatherTheme.accent)
+                            .frame(width: 2, height: 18)
+                            .position(
+                                x: Self.inset + CGFloat(nowIndex) / CGFloat(count - 1) * width,
+                                y: proxy.size.height / 2
+                            )
+                    }
+
+                    Circle()
+                        .fill(.white)
+                        .frame(width: isScrubbing ? 26 : 22, height: isScrubbing ? 26 : 22)
+                        .overlay(Circle().strokeBorder(WeatherTheme.accent, lineWidth: 3))
+                        .shadow(color: WeatherTheme.primaryText.opacity(0.25), radius: 4, y: 1)
+                        .position(x: thumbX, y: proxy.size.height / 2)
+                        .animation(.snappy(duration: 0.18), value: isScrubbing)
+                } else {
+                    Capsule()
+                        .fill(WeatherTheme.divider)
+                        .frame(height: 6)
+                        .padding(.horizontal, Self.inset)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        guard count > 1 else { return }
+                        if !isScrubbing {
+                            isScrubbing = true
+                            playback.isPlaying = false
+                        }
+                        let fraction = min(max((value.location.x - Self.inset) / width, 0), 1)
+                        playback.select(index: Int((fraction * CGFloat(count - 1)).rounded()))
+                    }
+                    .onEnded { _ in isScrubbing = false }
             )
-            .tint(WeatherTheme.accent)
-            .accessibilityLabel("Radar time")
-            .accessibilityValue(
-                playback.selectedFrame.map { WeatherFormatters.hour($0.timestamp) } ?? ""
-            )
-        } else {
-            Capsule()
-                .fill(WeatherTheme.divider)
-                .frame(height: 4)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .accessibilityHidden(true)
         }
+        .frame(height: 30)
+        .sensoryFeedback(.selection, trigger: playback.selectedIndex) { _, _ in isScrubbing }
+        .accessibilityElement()
+        .accessibilityLabel("Radar time")
+        .accessibilityValue(playback.selectedFrame.map { WeatherFormatters.hour($0.timestamp) } ?? "")
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: playback.select(index: playback.selectedIndex + 1)
+            case .decrement: playback.select(index: playback.selectedIndex - 1)
+            @unknown default: break
+            }
+        }
+    }
+
+    private func tickColor(index: Int, frame: RadarFrame) -> Color {
+        let isReady = playback.readyFrameIDs.contains(frame.id)
+        let base = frame.kind == .forecast ? Self.forecastTint : WeatherTheme.accent
+
+        if index <= playback.selectedIndex {
+            return base.opacity(isReady ? 1 : 0.45)
+        }
+        return base.opacity(isReady ? 0.28 : 0.1)
     }
 }
 
@@ -197,19 +296,17 @@ struct RadarLegend: View {
     ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 10) {
+            Text("Light")
+
             Capsule()
                 .fill(LinearGradient(colors: Self.stops, startPoint: .leading, endPoint: .trailing))
-                .frame(height: 6)
+                .frame(height: 5)
 
-            HStack {
-                Text("Light")
-                Spacer()
-                Text("Heavy")
-            }
-            .font(.caption2.weight(.medium))
-            .foregroundStyle(WeatherTheme.secondaryText)
+            Text("Heavy")
         }
+        .font(.caption2.weight(.semibold))
+        .foregroundStyle(WeatherTheme.secondaryText)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Precipitation intensity scale, light to heavy")
     }

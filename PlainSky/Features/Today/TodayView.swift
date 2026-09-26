@@ -167,7 +167,7 @@ private struct TodayLocationHeader: View {
                     .tint(WeatherTheme.heroText)
                     .frame(width: 40, height: 40)
                     .accessibilityLabel("Refreshing weather")
-            } else {
+            } else if activeAlertCount > 0 {
                 NavigationLink {
                     AlertsView()
                 } label: {
@@ -182,39 +182,23 @@ private struct TodayLocationHeader: View {
                                     .overlay(Circle().strokeBorder(Color.white.opacity(0.4), lineWidth: 1))
                             }
 
-                        if let badgeColor {
-                            Circle()
-                                .fill(badgeColor)
-                                .frame(width: 10, height: 10)
-                                .overlay(Circle().stroke(Color.white, lineWidth: 1.5))
-                        }
+                        Circle()
+                            .fill(.red)
+                            .frame(width: 10, height: 10)
+                            .overlay(Circle().stroke(Color.white, lineWidth: 1.5))
                     }
                 }
-                .accessibilityLabel(alertAccessibilityLabel)
+                .accessibilityLabel(
+                    "\(activeAlertCount) active weather \(activeAlertCount == 1 ? "alert" : "alerts")"
+                )
             }
         }
         .padding(.top, 8)
     }
 
-    private var badgeColor: Color? {
-        if store.screenState.alerts.value?.isEmpty == false { return .red }
-        if store.screenState.alerts.message != nil { return .orange }
-        return nil
-    }
-
-    private var alertAccessibilityLabel: String {
-        if let alerts = store.screenState.alerts.value, !alerts.isEmpty {
-            return "\(alerts.count) active weather alerts"
-        }
-
-        if store.screenState.alerts.isLoading {
-            return "Checking active weather alerts"
-        }
-
-        if store.screenState.alerts.message != nil {
-            return "Weather alert status unavailable"
-        }
-
-        return "Weather alerts"
+    /// The bell only appears when there is something to open. Alert-check
+    /// failures are surfaced inline on the Today screen instead.
+    private var activeAlertCount: Int {
+        store.screenState.alerts.value?.count ?? 0
     }
 }

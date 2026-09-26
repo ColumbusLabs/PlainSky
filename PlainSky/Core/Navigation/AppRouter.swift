@@ -12,8 +12,9 @@ final class AppRouter {
             selectedTab = .forecast
         } else if arguments.contains("--weather-tab=radar") {
             selectedTab = .radar
-        } else if arguments.contains("--weather-tab=places") {
-            selectedTab = .places
+        } else if arguments.contains("--weather-tab=settings")
+                    || arguments.contains("--weather-tab=places") {
+            selectedTab = .settings
         } else {
             selectedTab = .today
         }
@@ -42,7 +43,7 @@ enum AppTab: Hashable {
     case today
     case forecast
     case radar
-    case places
+    case settings
 }
 
 enum ForecastMode: String, CaseIterable, Identifiable {

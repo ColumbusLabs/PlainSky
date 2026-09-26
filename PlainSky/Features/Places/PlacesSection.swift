@@ -1,6 +1,7 @@
 import SwiftUI
 
-struct PlacesView: View {
+/// Search, current location, and saved places. Shown at the top of Settings.
+struct PlacesSection: View {
     @Environment(WeatherStore.self) private var store
     @State private var showingSearch = false
     @State private var locationService = LocationService()
@@ -9,91 +10,53 @@ struct PlacesView: View {
     @State private var showingRename = false
 
     var body: some View {
-        ZStack {
-            WeatherBackdrop(style: .calm)
+        VStack(spacing: WeatherTheme.sectionSpacing) {
+            SectionHeader(title: "Places")
+                .padding(.horizontal, 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-            ScrollView {
-                LazyVStack(spacing: 16) {
-                    header
+            Button {
+                showingSearch = true
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(WeatherTheme.accent)
 
-                    Button {
-                        showingSearch = true
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "magnifyingglass")
-                                .foregroundStyle(WeatherTheme.accent)
+                    Text("Search city or ZIP code")
+                        .foregroundStyle(WeatherTheme.secondaryText)
 
-                            Text("Search city or ZIP code")
-                                .foregroundStyle(WeatherTheme.secondaryText)
-
-                            Spacer()
-                        }
-                        .padding(16)
-                        .background(
-                            .ultraThinMaterial,
-                            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        )
-                    }
-                    .buttonStyle(.plain)
-
-                    currentLocationControl
-
-                    if let errorMessage = locationService.errorMessage {
-                        HStack(spacing: 10) {
-                            Image(systemName: "location.slash.fill")
-                                .foregroundStyle(.orange)
-
-                            Text(errorMessage)
-                                .font(.caption)
-                                .foregroundStyle(WeatherTheme.secondaryText)
-
-                            Spacer(minLength: 0)
-                        }
-                        .padding(14)
-                        .background(
-                            .ultraThinMaterial,
-                            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        )
-                    }
-
-                    savedPlaces
-
-                    NavigationLink {
-                        SettingsView()
-                    } label: {
-                        WeatherCard {
-                            HStack(spacing: 14) {
-                                Image(systemName: "gearshape.fill")
-                                    .font(.title3)
-                                    .foregroundStyle(WeatherTheme.accent)
-
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text("Settings")
-                                        .font(.headline)
-                                        .foregroundStyle(WeatherTheme.primaryText)
-
-                                    Text("Units, data sources, privacy, and diagnostics")
-                                        .font(.caption)
-                                        .foregroundStyle(WeatherTheme.secondaryText)
-                                }
-
-                                Spacer()
-
-                                Image(systemName: "chevron.right")
-                                    .font(.caption.weight(.bold))
-                                    .foregroundStyle(WeatherTheme.tertiaryText)
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
+                    Spacer()
                 }
-                .padding(.horizontal, WeatherTheme.horizontalPadding)
-                .padding(.top, 8)
-                .padding(.bottom, 28)
+                .padding(16)
+                .background(
+                    .ultraThinMaterial,
+                    in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                )
             }
-            .scrollIndicators(.hidden)
+            .buttonStyle(.plain)
+
+            currentLocationControl
+
+            if let errorMessage = locationService.errorMessage {
+                HStack(spacing: 10) {
+                    Image(systemName: "location.slash.fill")
+                        .foregroundStyle(.orange)
+
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundStyle(WeatherTheme.secondaryText)
+
+                    Spacer(minLength: 0)
+                }
+                .padding(14)
+                .background(
+                    .ultraThinMaterial,
+                    in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                )
+            }
+
+            savedPlaces
         }
-        .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $showingSearch) {
             NavigationStack {
                 LocationSearchView()
@@ -121,27 +84,6 @@ struct PlacesView: View {
         .onChange(of: locationService.currentLocation) { _, location in
             guard let location else { return }
             store.setCurrentLocationAndRefresh(location)
-        }
-    }
-
-    private var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Places")
-                    .font(.largeTitle.bold())
-                    .foregroundStyle(WeatherTheme.primaryText)
-
-                Text("Weather where you care about it.")
-                    .font(.subheadline)
-                    .foregroundStyle(WeatherTheme.secondaryText)
-            }
-
-            Spacer()
-
-            if store.isRefreshing {
-                ProgressView()
-                    .tint(WeatherTheme.primaryText)
-            }
         }
     }
 
@@ -174,7 +116,8 @@ struct PlacesView: View {
                         .font(.headline)
                         .foregroundStyle(WeatherTheme.primaryText)
 
-                        if let current = store.savedLocations.first(where: { $0.isCurrentLocation }) {
+                        if let current = store.savedLocations.first(where: { $0.isCurrentLocation }),
+                           current.displayName != "Current Location" {
                             Text("Currently \(current.displayName)")
                                 .font(.caption)
                                 .foregroundStyle(WeatherTheme.secondaryText)

@@ -4,6 +4,10 @@ struct ForecastView: View {
     @Environment(WeatherStore.self) private var store
     @Environment(AppRouter.self) private var router
 
+    /// Height of the header plus the full 7-day list. Hourly mode reuses it so
+    /// the header stays put when switching modes.
+    @State private var dailyContentHeight: CGFloat = 560
+
     private var mode: Binding<ForecastMode> {
         Binding(
             get: { router.forecastMode },
@@ -15,24 +19,37 @@ struct ForecastView: View {
         ZStack {
             WeatherBackdrop(style: .current(for: store.screenState))
 
-            ScrollView {
-                LazyVStack(spacing: WeatherTheme.sectionSpacing) {
-                    header
-                        .padding(.bottom, 10)
+            GeometryReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: WeatherTheme.sectionSpacing) {
+                        header
+                            .padding(.bottom, 10)
 
-                    ForecastModePicker(selection: mode)
+                        ForecastModePicker(selection: mode)
 
-                    RefreshErrorBanner()
+                        RefreshErrorBanner()
 
-                    forecastContent
+                        forecastContent
+                    }
+                    .background {
+                        GeometryReader { content in
+                            Color.clear.onChange(of: content.size.height, initial: true) { _, height in
+                                if router.forecastMode == .daily, store.screenState.daily.value != nil {
+                                    dailyContentHeight = height
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, WeatherTheme.horizontalPadding)
+                    // Center the daily layout vertically so the header clears the
+                    // sun in the sky image and the gap above matches the gap below.
+                    .padding(.top, max(8, (proxy.size.height - dailyContentHeight) / 2))
+                    .padding(.bottom, 24)
                 }
-                .padding(.horizontal, WeatherTheme.horizontalPadding)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
-            }
-            .scrollIndicators(.hidden)
-            .refreshable {
-                await store.refresh()
+                .scrollIndicators(.hidden)
+                .refreshable {
+                    await store.refresh()
+                }
             }
         }
         .navigationTitle("Forecast")

@@ -184,41 +184,66 @@ private struct RadarHeader: View {
     let onRefresh: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Radar")
-                    .font(.title2.weight(.bold))
-                    .foregroundStyle(WeatherTheme.primaryText)
-                    .accessibilityAddTraits(.isHeader)
+        HStack(alignment: .top, spacing: 10) {
+            LocationMenu {
+                HStack(spacing: 10) {
+                    Image(systemName: "dot.radiowaves.left.and.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 32)
+                        .background(WeatherTheme.accent.gradient, in: Circle())
 
-                Text(location.displayName)
-                    .font(.subheadline)
-                    .foregroundStyle(WeatherTheme.secondaryText)
-                    .lineLimit(1)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("RADAR")
+                            .font(.caption2.weight(.bold))
+                            .tracking(1.2)
+                            .foregroundStyle(WeatherTheme.secondaryText)
+
+                        HStack(spacing: 5) {
+                            Text(location.name)
+                                .font(.headline)
+                                .foregroundStyle(WeatherTheme.primaryText)
+                                .lineLimit(1)
+
+                            Image(systemName: "chevron.down")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(WeatherTheme.secondaryText)
+                        }
+                    }
+                }
+                .padding(.leading, 6)
+                .padding(.trailing, 16)
+                .padding(.vertical, 6)
+                .radarGlass(in: Capsule())
             }
+            .accessibilityAddTraits(.isHeader)
 
-            Spacer()
+            Spacer(minLength: 0)
 
-            headerButton(action: onRefresh, label: "Refresh radar") {
-                if isLoading {
-                    ProgressView()
-                        .tint(WeatherTheme.accent)
-                } else {
-                    Image(systemName: "arrow.clockwise")
+            VStack(spacing: 0) {
+                mapButton(action: onRefresh, label: "Refresh radar") {
+                    if isLoading {
+                        ProgressView()
+                            .controlSize(.small)
+                            .tint(WeatherTheme.accent)
+                    } else {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                }
+                .disabled(isLoading)
+
+                Divider()
+                    .frame(width: 24)
+
+                mapButton(action: onRecenter, label: "Recenter radar map") {
+                    Image(systemName: "location.fill")
                 }
             }
-            .disabled(isLoading)
-
-            headerButton(action: onRecenter, label: "Recenter radar map") {
-                Image(systemName: "location.fill")
-            }
+            .radarGlass(in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         }
-        .padding(.horizontal, WeatherTheme.cardPadding)
-        .padding(.vertical, 12)
-        .weatherSurface()
     }
 
-    private func headerButton<Content: View>(
+    private func mapButton<Content: View>(
         action: @escaping () -> Void,
         label: String,
         @ViewBuilder content: () -> Content
@@ -227,14 +252,28 @@ private struct RadarHeader: View {
             content()
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(WeatherTheme.accent)
-                .frame(width: 40, height: 40)
-                .background {
-                    Circle()
-                        .fill(WeatherTheme.insetFill)
-                        .overlay(Circle().strokeBorder(WeatherTheme.insetStroke, lineWidth: 1))
-                }
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
         .accessibilityLabel(label)
+    }
+}
+
+extension View {
+    /// Floating map chrome: Liquid Glass where available, frosted material otherwise.
+    @ViewBuilder
+    func radarGlass<S: Shape>(in shape: S) -> some View {
+        if #available(iOS 26.0, *) {
+            glassEffect(.regular, in: shape)
+        } else {
+            background {
+                shape
+                    .fill(.regularMaterial)
+                    .overlay(shape.stroke(WeatherTheme.cardStroke, lineWidth: 1))
+                    .shadow(color: WeatherTheme.shadow, radius: 12, y: 4)
+            }
+        }
     }
 }
 
@@ -271,7 +310,7 @@ private struct RadarStatusCard: View {
             Spacer(minLength: 0)
         }
         .padding(14)
-        .weatherSurface(cornerRadius: WeatherTheme.smallRadius + 2)
+        .radarGlass(in: RoundedRectangle(cornerRadius: 24, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 }

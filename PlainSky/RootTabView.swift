@@ -39,11 +39,11 @@ struct RootTabView: View {
             }
 
             NavigationStack {
-                PlacesView()
+                SettingsView()
             }
-            .tag(AppTab.places)
+            .tag(AppTab.settings)
             .tabItem {
-                Label("Places", systemImage: "mappin")
+                Label("Settings", systemImage: "gearshape")
             }
         }
         .environment(router)

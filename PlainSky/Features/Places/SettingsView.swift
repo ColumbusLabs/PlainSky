@@ -16,6 +16,14 @@ struct SettingsView: View {
 
             ScrollView {
                 LazyVStack(spacing: WeatherTheme.sectionSpacing) {
+                    header
+
+                    PlacesSection()
+
+                    SectionHeader(title: "Preferences")
+                        .padding(.horizontal, 4)
+                        .padding(.top, 12)
+
                     WeatherCard {
                         VStack(alignment: .leading, spacing: 14) {
                             SectionHeader(title: "Display units")
@@ -89,14 +97,29 @@ struct SettingsView: View {
                     }
                 }
                 .padding(.horizontal, WeatherTheme.horizontalPadding)
-                .padding(.top, 12)
+                .padding(.top, 8)
                 .padding(.bottom, 28)
             }
             .scrollIndicators(.hidden)
         }
         .navigationTitle("Settings")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+        .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private var header: some View {
+        HStack {
+            Text("Settings")
+                .font(.largeTitle.bold())
+                .foregroundStyle(WeatherTheme.primaryText)
+                .accessibilityAddTraits(.isHeader)
+
+            Spacer()
+
+            if store.isRefreshing {
+                ProgressView()
+                    .tint(WeatherTheme.primaryText)
+            }
+        }
     }
 }
 

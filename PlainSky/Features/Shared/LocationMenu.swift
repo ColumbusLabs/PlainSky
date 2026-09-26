@@ -36,7 +36,7 @@ struct LocationMenu<Content: View>: View {
                 }
 
                 Button {
-                    router.selectedTab = .places
+                    router.selectedTab = .settings
                 } label: {
                     Label("Manage Places", systemImage: "list.bullet")
                 }
