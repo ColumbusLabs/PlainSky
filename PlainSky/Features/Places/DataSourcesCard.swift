@@ -8,6 +8,7 @@ struct DataSourcesCard: View {
         [
             state.current.validation?.source,
             state.minutePrecipitation.validation?.source,
+            state.uvIndex.validation?.source,
             state.solarEvents.validation?.source,
             state.hourly.validation?.source,
             state.daily.validation?.source

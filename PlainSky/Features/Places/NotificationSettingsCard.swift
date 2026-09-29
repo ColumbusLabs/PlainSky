@@ -94,14 +94,24 @@ struct NotificationSettingsCard: View {
                 selected: store.screenState.location,
                 unitSystem: store.unitSystem
             )
+            Task { await AlertPushRegistration.shared.sync() }
         }
     }
 
     private var footnote: String {
-        let delivery = SharedWeatherSettings().serverAlertsRegistered
-            ? "NWS alerts are pushed to this iPhone within about a minute of being issued."
-            : "NWS alerts are checked when iOS lets PlainSky refresh in the background."
-        return "\(delivery) Precipitation notices rely on background refresh. The place is also used by the home screen widget; an approximate location (about 1 km) is stored on PlainSky's alert server while alerts are on. Always follow official guidance from local authorities."
+        let hasNWSAlertCategories = preferences.warnings
+            || preferences.watches
+            || preferences.advisories
+            || preferences.statements
+        let delivery: String
+        if !hasNWSAlertCategories {
+            delivery = "NWS alert pushes are off because all alert categories are disabled."
+        } else if SharedWeatherSettings().serverAlertsRegistered {
+            delivery = "NWS alerts are pushed to this iPhone within about a minute of being issued."
+        } else {
+            delivery = "NWS alerts are checked when iOS lets PlainSky refresh in the background."
+        }
+        return "\(delivery) Precipitation notices stay on this iPhone. The alert place is rounded to about 1 km and shared with PlainSky's alert service only while an NWS alert category is enabled; turning all four categories off removes the registration when the iPhone is online. The place is also used by the home screen widget. Always follow official guidance from local authorities."
     }
 
     private var divider: some View {

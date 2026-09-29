@@ -1,6 +1,6 @@
 # PlainSky
 
-A clean, ad-free native iOS weather app built with SwiftUI.
+A completely free, ad-free native iOS weather app built with SwiftUI. No subscriptions, in-app purchases, or paid feature tiers.
 
 ## Current state
 
@@ -42,8 +42,15 @@ open PlainSky.xcodeproj
 
 iOS 17+.
 
+Primary forecasts and alerts cover the United States and supported U.S. territories. Apple Weather supplements and NOAA radar products vary by location.
+
+Source code is publicly available in this repository.
+
 See:
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Live data checklist](docs/LIVE_DATA_CHECKLIST.md)
 - [WeatherKit activation](docs/WEATHERKIT_SETUP.md)
+- [Privacy policy](docs/PRIVACY.md)
+- [Support](docs/SUPPORT.md)
+- [App Store listing](docs/APP_STORE_METADATA.md)

@@ -37,9 +37,10 @@ struct ConditionsProvider: TimelineProvider {
 
     func getSnapshot(in context: Context, completion: @escaping (ConditionsEntry) -> Void) {
         let settings = SharedWeatherSettings()
+        let cached = Self.loadCachedSnapshot(settings: settings)
         completion(ConditionsEntry(
             date: Date(),
-            snapshot: settings.widgetSnapshot ?? (context.isPreview ? .sample : nil),
+            snapshot: cached ?? (context.isPreview ? .sample : nil),
             unitSystem: settings.unitSystem
         ))
     }
@@ -70,7 +71,7 @@ struct ConditionsProvider: TimelineProvider {
 
     @MainActor
     private static func loadSnapshot(settings: SharedWeatherSettings) async -> WidgetWeatherSnapshot? {
-        let cached = settings.widgetSnapshot
+        let cached = loadCachedSnapshot(settings: settings)
         guard let place = settings.homePlace else { return cached }
 
         if let cached,
@@ -101,6 +102,17 @@ struct ConditionsProvider: TimelineProvider {
 
         settings.widgetSnapshot = fresh
         return fresh
+    }
+
+    /// Older shared snapshots have no current-provider field. Remove any
+    /// ambiguous current values before they can be returned or reused.
+    private static func loadCachedSnapshot(settings: SharedWeatherSettings) -> WidgetWeatherSnapshot? {
+        let stored = settings.widgetSnapshot
+        let displayable = stored?.widgetDisplaySnapshot
+        if stored != displayable {
+            settings.widgetSnapshot = displayable
+        }
+        return displayable
     }
 }
 
@@ -226,6 +238,7 @@ private extension WidgetWeatherSnapshot {
             high: 75,
             low: 44,
             hours: (1...3).map { .init(date: start.addingTimeInterval(Double($0) * 3600), temperature: 69 + Double($0)) },
+            currentProvider: .mock,
             asOf: now
         )
     }

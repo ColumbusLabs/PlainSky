@@ -9,7 +9,7 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.10"
-    CURRENT_PROJECT_VERSION: 2
+    CURRENT_PROJECT_VERSION: 3
     MARKETING_VERSION: 1.0.0
     DEVELOPMENT_TEAM: 78PXX669LQ
 
@@ -29,6 +29,7 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSRequiresIPhoneOS: true
+        ITSAppUsesNonExemptEncryption: false
         NSLocationWhenInUseUsageDescription: Your location is used to show weather for where you are. If weather alerts are on, an approximate location (about 1 km) is stored only to send you alerts.
         UIUserInterfaceStyle: Light
         UILaunchScreen:
@@ -62,6 +63,8 @@ targets:
       - path: PlainSkyWidget
         excludes:
           - Info.plist
+      - path: PlainSky/Resources/PrivacyInfo.xcprivacy
+        buildPhase: resources
       # The widget reuses the app's validated NWS pipeline and models.
       - path: PlainSky/Core
         excludes:

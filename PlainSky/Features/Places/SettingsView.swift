@@ -78,9 +78,36 @@ struct SettingsView: View {
                             .font(.subheadline)
                             .foregroundStyle(WeatherTheme.primaryText)
 
-                            Text("Selected coordinates are sent to the weather and map providers needed to answer each request. While notifications are on, your alert place, rounded to about 1 km, is stored on PlainSky's alert server so it can push NWS alerts; turning notifications off deletes it.")
+                            Text("PlainSky is free to use, with no ads or subscriptions. Weather requests send the selected place's coordinates to the National Weather Service and, for Apple WeatherKit features, to Apple. If any NWS alert category is enabled, the alert service stores a location rounded to about 1 km, the place name, alert choices, and this iPhone's APNs token. Turning off all NWS alert categories asks the service to delete that registration; the request needs an internet connection.")
                                 .font(.caption)
                                 .foregroundStyle(WeatherTheme.secondaryText)
+                        }
+                    }
+
+                    WeatherCard {
+                        VStack(alignment: .leading, spacing: 12) {
+                            SectionHeader(title: "About PlainSky")
+
+                            SettingsExternalLink(
+                                icon: "hand.raised.fill",
+                                title: "Privacy policy",
+                                subtitle: "How location and notification data are used.",
+                                url: URL(string: "https://github.com/ColumbusLabs/PlainSky/blob/main/docs/PRIVACY.md")!
+                            )
+
+                            SettingsExternalLink(
+                                icon: "questionmark.circle.fill",
+                                title: "Support",
+                                subtitle: "Report a problem through GitHub Issues.",
+                                url: URL(string: "https://github.com/ColumbusLabs/PlainSky/issues/new")!
+                            )
+
+                            SettingsExternalLink(
+                                icon: "chevron.left.forwardslash.chevron.right",
+                                title: "PlainSky on GitHub",
+                                subtitle: "Browse the source repository.",
+                                url: URL(string: "https://github.com/ColumbusLabs/PlainSky")!
+                            )
                         }
                     }
 
@@ -190,5 +217,41 @@ private struct SettingsValueRow: View {
         }
         .font(.subheadline)
         .padding(.vertical, 3)
+    }
+}
+
+private struct SettingsExternalLink: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let url: URL
+
+    var body: some View {
+        Link(destination: url) {
+            HStack(spacing: 14) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundStyle(WeatherTheme.accent)
+                    .frame(width: 30)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundStyle(WeatherTheme.primaryText)
+
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(WeatherTheme.secondaryText)
+                }
+
+                Spacer()
+
+                Image(systemName: "arrow.up.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(WeatherTheme.tertiaryText)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }

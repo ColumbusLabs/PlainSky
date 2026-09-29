@@ -25,6 +25,14 @@ struct ForecastView: View {
                         header
                             .padding(.bottom, 10)
 
+                        if let source = store.screenState.current.validation?.source,
+                           source.provider == .weatherKit,
+                           source.attributionLegalURL != nil {
+                            WeatherCard {
+                                WeatherProviderAttributionView(metadata: source)
+                            }
+                        }
+
                         ForecastModePicker(selection: mode)
 
                         RefreshErrorBanner()

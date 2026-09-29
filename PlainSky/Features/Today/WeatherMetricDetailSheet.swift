@@ -17,6 +17,11 @@ struct WeatherMetricDetailSheet: View {
                     VStack(spacing: 16) {
                         hero
                         detailCard
+                        if let source = attributionSource {
+                            WeatherCard {
+                                WeatherProviderAttributionView(metadata: source)
+                            }
+                        }
                     }
                     .padding(WeatherTheme.horizontalPadding)
                 }
@@ -33,6 +38,19 @@ struct WeatherMetricDetailSheet: View {
                 }
             }
         }
+    }
+
+    private var attributionSource: WeatherSourceMetadata? {
+        let source: WeatherSourceMetadata?
+        switch metric {
+        case .uv, .sun:
+            source = solar?.source
+        default:
+            source = current.source
+        }
+        return source?.provider == .weatherKit && source?.attributionLegalURL != nil
+            ? source
+            : nil
     }
 
     private var hero: some View {

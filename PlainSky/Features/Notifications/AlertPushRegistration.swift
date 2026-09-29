@@ -5,8 +5,11 @@ import UserNotifications
 /// Registers this phone with the PlainSky alerts server (a Cloudflare Worker
 /// that checks NWS every minute and sends pushes through APNs).
 ///
-/// Only the alert place, rounded server-side to ~1 km, and the alert toggles
-/// are sent. Turning notifications off removes the registration.
+/// Sends the selected alert place rounded to two decimal places (~1 km), the
+/// NWS alert toggles, and the APNs device token to the alerts server. The
+/// server rounds the coordinates again before storing them. Turning off every
+/// NWS alert category removes the server registration; precipitation notices
+/// remain local to this device.
 @MainActor
 final class AlertPushRegistration {
     static let shared = AlertPushRegistration()
@@ -15,8 +18,29 @@ final class AlertPushRegistration {
     /// Re-register at least this often so a lost server record heals itself.
     private static let refreshInterval: TimeInterval = 12 * 60 * 60
 
-    private let settings = SharedWeatherSettings()
+    private let settings: SharedWeatherSettings
+    private let session: URLSession
+    private let authorizationStatusProvider: @MainActor () async -> UNAuthorizationStatus
+    private let isPreview: @MainActor () -> Bool
     private var isSyncing = false
+    private var hasPendingSync = false
+    private var pendingSyncForce = false
+
+    init(
+        settings: SharedWeatherSettings = SharedWeatherSettings(),
+        session: URLSession = .shared,
+        authorizationStatusProvider: @escaping @MainActor () async -> UNAuthorizationStatus = {
+            await WeatherNotifier.shared.authorizationStatus()
+        },
+        isPreview: @escaping @MainActor () -> Bool = {
+            AppEnvironment.dataMode == .preview
+        }
+    ) {
+        self.settings = settings
+        self.session = session
+        self.authorizationStatusProvider = authorizationStatusProvider
+        self.isPreview = isPreview
+    }
 
     private static var environment: String {
         #if DEBUG
@@ -44,8 +68,8 @@ final class AlertPushRegistration {
 
     /// Asks iOS for an APNs token once notifications are allowed.
     func registerForRemoteNotificationsIfAllowed() async {
-        guard AppEnvironment.dataMode != .preview else { return }
-        let status = await WeatherNotifier.shared.authorizationStatus()
+        guard !isPreview() else { return }
+        let status = await authorizationStatusProvider()
         if status == .authorized || status == .provisional || status == .ephemeral {
             UIApplication.shared.registerForRemoteNotifications()
         } else {
@@ -63,11 +87,30 @@ final class AlertPushRegistration {
     /// Sends the current alert place and toggles when they changed or the
     /// last registration is getting old.
     func sync(force: Bool = false) async {
-        guard AppEnvironment.dataMode != .preview, !isSyncing, let token = settings.pushToken else { return }
+        guard !isPreview() else { return }
+        if isSyncing {
+            hasPendingSync = true
+            pendingSyncForce = pendingSyncForce || force
+            return
+        }
+
         isSyncing = true
         defer { isSyncing = false }
 
-        let status = await WeatherNotifier.shared.authorizationStatus()
+        var nextForce = force
+        while true {
+            let passForce = nextForce || pendingSyncForce
+            nextForce = false
+            hasPendingSync = false
+            pendingSyncForce = false
+            await syncOnce(force: passForce)
+            guard hasPendingSync else { return }
+        }
+    }
+
+    private func syncOnce(force: Bool) async {
+        guard let token = settings.pushToken else { return }
+        let status = await authorizationStatusProvider()
         guard status == .authorized || status == .provisional || status == .ephemeral,
               let place = settings.homePlace else {
             await unregister(token: token)
@@ -75,11 +118,16 @@ final class AlertPushRegistration {
         }
 
         let preferences = settings.notificationPreferences
+        guard preferences.warnings || preferences.watches || preferences.advisories || preferences.statements else {
+            await unregister(token: token)
+            return
+        }
+
         let registration = Registration(
             token: token,
             environment: Self.environment,
-            latitude: place.latitude,
-            longitude: place.longitude,
+            latitude: Self.roundForAlertRegistration(place.latitude),
+            longitude: Self.roundForAlertRegistration(place.longitude),
             placeName: place.name,
             preferences: .init(
                 warnings: preferences.warnings,
@@ -105,7 +153,7 @@ final class AlertPushRegistration {
         request.httpBody = body
         request.timeoutInterval = 20
 
-        guard let (_, response) = try? await URLSession.shared.data(for: request),
+        guard let (_, response) = try? await session.data(for: request),
               let http = response as? HTTPURLResponse,
               (200..<300).contains(http.statusCode) else {
             // Leave the previous state alone; on-device checks keep covering
@@ -123,13 +171,18 @@ final class AlertPushRegistration {
         var request = URLRequest(url: Self.endpoint.appending(path: "v1/devices/\(token)"))
         request.httpMethod = "DELETE"
         request.timeoutInterval = 20
-        if let (_, response) = try? await URLSession.shared.data(for: request),
+        if let (_, response) = try? await session.data(for: request),
            let http = response as? HTTPURLResponse,
            (200..<300).contains(http.statusCode) {
             settings.serverAlertsRegistered = false
             settings.registrationFingerprint = nil
             settings.registeredAt = nil
         }
+    }
+
+    /// Mirrors JavaScript Math.round(value * 100) / 100 in the worker.
+    private static func roundForAlertRegistration(_ value: Double) -> Double {
+        floor(value * 100 + 0.5) / 100
     }
 }
 

@@ -72,6 +72,19 @@ struct TodayView: View {
                         uvIndex: weather.uvIndex,
                         solar: weather.solarEvents
                     )
+
+                    if let source = [
+                        weather.current.validation?.source,
+                        weather.minutePrecipitation.validation?.source,
+                        weather.uvIndex.validation?.source,
+                        weather.solarEvents.validation?.source
+                    ].compactMap({ $0 }).first(where: {
+                        $0.provider == .weatherKit && $0.attributionLegalURL != nil
+                    }) {
+                        WeatherCard {
+                            WeatherProviderAttributionView(metadata: source)
+                        }
+                    }
                 }
                 .padding(.horizontal, WeatherTheme.horizontalPadding)
                 .padding(.top, 4)

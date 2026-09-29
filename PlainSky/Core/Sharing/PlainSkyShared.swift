@@ -68,6 +68,9 @@ struct WidgetWeatherSnapshot: Codable, Hashable, Sendable {
 
     var location: WeatherLocation
     var temperature: Double?
+    /// Provider selected for the current conditions stored above. Older
+    /// snapshots decode this as nil because provenance was not stored yet.
+    var currentProvider: String?
     var conditionDescription: String?
     var condition: WeatherCondition?
     var high: Double?
@@ -79,13 +82,17 @@ struct WidgetWeatherSnapshot: Codable, Hashable, Sendable {
     /// Builds from fresh screen state only; unavailable products stay empty
     /// rather than being filled with placeholder values.
     init?(state: WeatherScreenState, asOf: Date) {
-        let current = state.current.value
+        let provider = state.current.validation?.provider
+        let current = Self.allowsCurrentConditions(from: provider)
+            ? state.current.value
+            : nil
         let hourly = state.hourly.value ?? []
         guard current != nil || !hourly.isEmpty else { return nil }
 
         let today = state.daily.value?.first
         location = state.location
         temperature = current?.temperature
+        currentProvider = current == nil ? nil : provider?.rawValue
         // The widget has room for real conditions only, not the generic
         // placeholder used when a station sends no text.
         conditionDescription = current?.conditionDescription == NWSMapper.genericObservationDescription
@@ -108,10 +115,12 @@ struct WidgetWeatherSnapshot: Codable, Hashable, Sendable {
         low: Double?,
         hours: [Hour],
         solar: SolarWeather? = nil,
+        currentProvider: WeatherProvider? = nil,
         asOf: Date
     ) {
         self.location = location
         self.temperature = temperature
+        self.currentProvider = currentProvider?.rawValue
         self.conditionDescription = conditionDescription
         self.condition = condition
         self.high = high
@@ -119,6 +128,33 @@ struct WidgetWeatherSnapshot: Codable, Hashable, Sendable {
         self.hours = hours
         self.solar = solar
         self.asOf = asOf
+    }
+
+    /// Current values from old snapshots have no source metadata. Keep their
+    /// NWS forecasts, but only retain a current temperature when its provider
+    /// is known to be NWS or deterministic preview data.
+    var widgetDisplaySnapshot: WidgetWeatherSnapshot? {
+        var snapshot = self
+        guard Self.allowsCurrentConditions(from: currentProvider) else {
+            snapshot.temperature = nil
+            snapshot.currentProvider = nil
+            snapshot.conditionDescription = nil
+            snapshot.condition = nil
+            guard !snapshot.hours.isEmpty || snapshot.high != nil || snapshot.low != nil else {
+                return nil
+            }
+            return snapshot
+        }
+
+        return snapshot
+    }
+
+    private static func allowsCurrentConditions(from provider: WeatherProvider?) -> Bool {
+        provider == .nwsObservation || provider == .mock
+    }
+
+    private static func allowsCurrentConditions(from provider: String?) -> Bool {
+        provider == WeatherProvider.nwsObservation.rawValue || provider == WeatherProvider.mock.rawValue
     }
 
     /// The next `count` whole hours after `date`.
