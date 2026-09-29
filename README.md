@@ -44,7 +44,7 @@ iOS 17+.
 
 Primary forecasts and alerts cover the United States and supported U.S. territories. Apple Weather supplements and NOAA radar products vary by location.
 
-Source code is publicly available in this repository.
+PlainSky is open source under the [MIT License](LICENSE). Explore the code, report issues, and contribute through this repository.
 
 See:
 

@@ -37,8 +37,8 @@ See temperature, feels-like, precipitation chances, wind, humidity, and more. Sw
 OPTIONAL NOTIFICATIONS
 Choose NWS warnings, watches, advisories, and statements for your alert place. Enable precipitation-start notices where Apple next-hour data is available. Notification delivery depends on network and iOS background availability. Always follow official guidance from local authorities.
 
-SOURCE CODE ON GITHUB
-Explore the app's source code, report issues, and follow development at https://github.com/ColumbusLabs/PlainSky.
+OPEN SOURCE ON GITHUB
+PlainSky is open source under the MIT License. Explore the code, report issues, and contribute at https://github.com/ColumbusLabs/PlainSky.
 
 PlainSky requires iOS 17 or later and an internet connection for fresh weather data.
 
@@ -46,12 +46,9 @@ PlainSky requires iOS 17 or later and an internet connection for fresh weather d
 
 forecast,radar,NOAA,NWS,rain,temperature,storm,alerts,widget,precipitation,free,ad-free
 
-## Open-source wording
+## License
 
-The repository is public, but a license has not yet been selected. After a license is approved and published, replace the source-code heading and paragraph with:
-
-OPEN SOURCE ON GITHUB
-PlainSky is open source. Explore the code, report issues, and contribute at https://github.com/ColumbusLabs/PlainSky.
+PlainSky's source code is available under the [MIT License](../LICENSE). The license does not replace the separate terms applicable to weather data, Apple services, or other third-party products.
 
 ## App Review notes
 
@@ -73,11 +70,10 @@ The app uses standard operating-system HTTPS/TLS and does not implement propriet
 - All 122 unit tests pass. The 1.0.0 (3) archive includes the revised app/widget privacy manifests, client-side alert-coordinate rounding, alert-registration removal, and Apple Weather attribution.
 - Apple processed 1.0.0 (3) as `VALID` and `APP_STORE_ELIGIBLE`; build 3 is selected for this App Store version. The version remains `PREPARE_FOR_SUBMISSION` with manual release enabled.
 - Public privacy and support documents are published in this repository; both URLs are saved and verified in App Store Connect.
+- The App Review contact details and final review notes are saved and verified in App Store Connect. Private contact details are not included in this repository.
 
 ## Remaining submission gates
 
-- Choose and publish an open-source license before changing the listing to say open source.
 - Complete the App Privacy questionnaire in the signed-in App Store Connect browser.
-- Supply the App Review contact name, email, and phone number, then save the final review notes above with those required fields.
 - Validate the final signed build's WeatherKit products and attribution on a physical iPhone.
 - Inspect Apple account agreements, regional compliance, and final submission validation before submitting.
