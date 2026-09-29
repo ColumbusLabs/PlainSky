@@ -2,6 +2,8 @@
 
 Prepared for PlainSky's 1.0.0 release candidate on September 29, 2026. These are the answers to enter in App Store Connect; the privacy manifest alone does not publish the App Store privacy label.
 
+All answers below were entered and saved in the signed-in App Store Connect browser on September 29, 2026. The completed product-page preview shows all three data types linked to the device for App Functionality, with no tracking. Apple's final Publish confirmation remains pending owner approval of its accuracy, compliance, and ongoing-update attestation. Publishing the privacy responses is separate from adding the app for review.
+
 ## Data collection
 
 Choose **Yes, we collect data from this app**. The optional alert service retains a registration after the request completes. Do not select "Data Not Collected."
@@ -29,4 +31,4 @@ The app registration flow is in `PlainSky/Features/Notifications/AlertPushRegist
 
 Apple defines collection in terms of off-device data retained beyond the real-time request and requires functionality-only collection to be disclosed: [App Privacy Details](https://developer.apple.com/app-store/app-privacy-details/). See also [adding collection details to a privacy manifest](https://developer.apple.com/documentation/technotes/tn3184-adding-data-collection-details-to-your-privacy-manifest) and [required reason APIs](https://developer.apple.com/documentation/bundleresources/app-privacy-configuration/nsprivacyaccessedapitypes/nsprivacyaccessedapitype).
 
-Reassess these answers if the alert service, analytics, logging, or providers change. Publishing the questionnaire requires the signed-in App Store Connect browser.
+Reassess these answers if the alert service, analytics, logging, or providers change. The questionnaire is saved; applying the privacy label requires completing Apple's final Publish confirmation in App Store Connect.

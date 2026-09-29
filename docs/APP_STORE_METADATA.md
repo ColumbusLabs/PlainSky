@@ -71,9 +71,11 @@ The app uses standard operating-system HTTPS/TLS and does not implement propriet
 - Apple processed 1.0.0 (3) as `VALID` and `APP_STORE_ELIGIBLE`; build 3 is selected for this App Store version. The version remains `PREPARE_FOR_SUBMISSION` with manual release enabled.
 - Public privacy and support documents are published in this repository; both URLs are saved and verified in App Store Connect.
 - The App Review contact details and final review notes are saved and verified in App Store Connect. Private contact details are not included in this repository.
+- The App Privacy questionnaire is fully entered and saved: Coarse Location, Device ID, and Other Data Types; App Functionality only; linked to the device; no tracking. Apple's final Publish attestation is pending owner approval.
+- Browser verification confirmed the Free Apps Agreement and Digital Services Act compliance are Active, and the app is identified as a trader. The version's Save button is disabled because the listing has no unsaved changes.
 
 ## Remaining submission gates
 
-- Complete the App Privacy questionnaire in the signed-in App Store Connect browser.
-- Validate the final signed build's WeatherKit products and attribution on a physical iPhone.
-- Inspect Apple account agreements, regional compliance, and final submission validation before submitting.
+- Apply the saved App Privacy responses after owner approval of Apple's final accuracy, compliance, and ongoing-update attestation.
+- Validate the final signed build's WeatherKit products and attribution on a physical iPhone. The connected iPhone still had 1.0.0 (2) when checked on September 29, 2026.
+- Run Apple's final Add for Review validation only when the owner authorizes that step. It has deliberately not been run, and the version remains Prepare for Submission.
