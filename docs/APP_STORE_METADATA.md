@@ -71,14 +71,13 @@ The app uses standard operating-system HTTPS/TLS and does not implement propriet
 - The English listing, Weather category, 4+ content questionnaire, and manual release setting are saved in App Store Connect.
 - Today, Forecast, and Radar screenshots at 1320 × 2868 are uploaded and have `COMPLETE` processing status.
 - All 122 unit tests pass. The 1.0.0 (3) archive includes the revised app/widget privacy manifests, client-side alert-coordinate rounding, alert-registration removal, and Apple Weather attribution.
-- Apple accepted the upload of 1.0.0 (3); processing and build selection must be verified before submission.
-- Public privacy and support documents are included in this repository.
+- Apple processed 1.0.0 (3) as `VALID` and `APP_STORE_ELIGIBLE`; build 3 is selected for this App Store version. The version remains `PREPARE_FOR_SUBMISSION` with manual release enabled.
+- Public privacy and support documents are published in this repository; both URLs are saved and verified in App Store Connect.
 
 ## Remaining submission gates
 
 - Choose and publish an open-source license before changing the listing to say open source.
 - Complete the App Privacy questionnaire in the signed-in App Store Connect browser.
-- Supply the App Review contact name, email, and phone number.
-- Select 1.0.0 (3) after Apple processing is valid, and verify the build attached to this version.
+- Supply the App Review contact name, email, and phone number, then save the final review notes above with those required fields.
 - Validate the final signed build's WeatherKit products and attribution on a physical iPhone.
 - Inspect Apple account agreements, regional compliance, and final submission validation before submitting.
