@@ -5,7 +5,7 @@ struct AlertsView: View {
 
     var body: some View {
         ZStack {
-            WeatherBackdrop(style: store.screenState.alerts.value?.isEmpty == false ? .rain : .clear)
+            WeatherBackdrop(style: .current(for: store.screenState))
 
             ScrollView {
                 LazyVStack(spacing: 14) {

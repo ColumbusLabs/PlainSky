@@ -4,6 +4,13 @@ enum WeatherBackdropStyle {
     case clear
     case cloudy
     case rain
+    case rainNight
+    case heavyRain
+    case heavyRainNight
+    case thunderstorm
+    case thunderstormNight
+    case snow
+    case snowNight
     case night
     /// Soft sky gradient for settings-style screens where text sits directly on the backdrop.
     case calm
@@ -12,15 +19,19 @@ enum WeatherBackdropStyle {
         _ condition: WeatherCondition,
         isDaytime: Bool
     ) -> WeatherBackdropStyle {
-        guard isDaytime else { return .night }
-
         switch condition {
-        case .rain, .heavyRain, .thunderstorm:
-            return .rain
-        case .cloudy, .fog, .snow:
-            return .cloudy
+        case .rain:
+            return isDaytime ? .rain : .rainNight
+        case .heavyRain:
+            return isDaytime ? .heavyRain : .heavyRainNight
+        case .thunderstorm:
+            return isDaytime ? .thunderstorm : .thunderstormNight
+        case .snow:
+            return isDaytime ? .snow : .snowNight
+        case .cloudy, .fog:
+            return isDaytime ? .cloudy : .night
         case .clear, .mostlyClear, .partlyCloudy, .windy, .unknown:
-            return .clear
+            return isDaytime ? .clear : .night
         }
     }
 
@@ -45,27 +56,33 @@ enum WeatherBackdropStyle {
         )
     }
 
-    fileprivate var imageName: String? {
+    var imageName: String? {
         switch self {
-        case .clear, .cloudy, .rain: "SkyDay"
+        case .clear, .cloudy: "SkyDay"
         case .night: "SkyNight"
+        case .rain: "SkyRainDay"
+        case .rainNight: "SkyRainNight"
+        case .heavyRain: "SkyHeavyRainDay"
+        case .heavyRainNight: "SkyHeavyRainNight"
+        case .thunderstorm: "SkyThunderstormDay"
+        case .thunderstormNight: "SkyThunderstormNight"
+        case .snow: "SkySnowDay"
+        case .snowNight: "SkySnowNight"
         case .calm: nil
         }
     }
 
     fileprivate var saturation: Double {
         switch self {
-        case .clear, .night, .calm: 1
         case .cloudy: 0.35
-        case .rain: 0.2
+        default: 1
         }
     }
 
     fileprivate var tint: Color {
         switch self {
-        case .clear, .night, .calm: .clear
         case .cloudy: Color(red: 0.55, green: 0.62, blue: 0.70).opacity(0.28)
-        case .rain: Color(red: 0.28, green: 0.36, blue: 0.47).opacity(0.38)
+        default: .clear
         }
     }
 }

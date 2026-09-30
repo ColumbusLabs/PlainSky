@@ -1,11 +1,13 @@
 import SwiftUI
 
 struct AlertDetailView: View {
+    @Environment(WeatherStore.self) private var store
+
     let alert: WeatherAlert
 
     var body: some View {
         ZStack {
-            WeatherBackdrop(style: .rain)
+            WeatherBackdrop(style: .current(for: store.screenState))
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {

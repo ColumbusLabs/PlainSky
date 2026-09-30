@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 @testable import PlainSky
 
 final class WeatherDaylightTests: XCTestCase {
@@ -38,10 +39,58 @@ final class WeatherDaylightTests: XCTestCase {
         XCTAssertFalse(WeatherDaylight.isDaytime(date(hour: 19, minute: 30), solar: nil, calendar: calendar))
     }
 
-    func testNightOverridesConditionForBackdrop() {
-        XCTAssertEqual(WeatherBackdropStyle.forConditions(.rain, isDaytime: false), .night)
-        XCTAssertEqual(WeatherBackdropStyle.forConditions(.rain, isDaytime: true), .rain)
+    func testBackdropPreservesWeatherAtNight() {
+        let pairs: [(WeatherCondition, WeatherBackdropStyle, WeatherBackdropStyle)] = [
+            (.clear, .clear, .night),
+            (.mostlyClear, .clear, .night),
+            (.partlyCloudy, .clear, .night),
+            (.cloudy, .cloudy, .night),
+            (.fog, .cloudy, .night),
+            (.windy, .clear, .night),
+            (.unknown, .clear, .night),
+            (.rain, .rain, .rainNight),
+            (.heavyRain, .heavyRain, .heavyRainNight),
+            (.thunderstorm, .thunderstorm, .thunderstormNight),
+            (.snow, .snow, .snowNight)
+        ]
+        for (condition, day, night) in pairs {
+            XCTAssertEqual(WeatherBackdropStyle.forConditions(condition, isDaytime: true), day)
+            XCTAssertEqual(WeatherBackdropStyle.forConditions(condition, isDaytime: false), night)
+        }
         XCTAssertEqual(WeatherBackdropStyle.forConditions(.fog, isDaytime: true), .cloudy)
         XCTAssertEqual(WeatherBackdropStyle.forConditions(.partlyCloudy, isDaytime: true), .clear)
+    }
+
+    func testCurrentBackdropFollowsSolarEventsForSnapshotAndScreenState() {
+        var snapshot = MockWeather.snapshot
+        snapshot.current.condition = .thunderstorm
+        snapshot.solar = solar
+        for (hour, expected) in [(12, WeatherBackdropStyle.thunderstorm), (22, .thunderstormNight)] {
+            XCTAssertEqual(WeatherBackdropStyle.current(for: snapshot, at: date(hour: hour)), expected)
+            XCTAssertEqual(
+                WeatherBackdropStyle.current(for: WeatherScreenState(preview: snapshot), at: date(hour: hour)),
+                expected
+            )
+        }
+        XCTAssertEqual(WeatherBackdropStyle.current(for: WeatherScreenState(location: snapshot.location)), .calm)
+    }
+
+    func testWeatherImagesAreBundledAndLoadable() throws {
+        let pairs: [(WeatherCondition, String, String)] = [
+            (.clear, "SkyDay", "SkyNight"),
+            (.rain, "SkyRainDay", "SkyRainNight"),
+            (.heavyRain, "SkyHeavyRainDay", "SkyHeavyRainNight"),
+            (.thunderstorm, "SkyThunderstormDay", "SkyThunderstormNight"),
+            (.snow, "SkySnowDay", "SkySnowNight")
+        ]
+        for (condition, day, night) in pairs {
+            for (isDaytime, name) in [(true, day), (false, night)] {
+                let style = WeatherBackdropStyle.forConditions(condition, isDaytime: isDaytime)
+                XCTAssertEqual(style.imageName, name)
+                let image = try XCTUnwrap(UIImage(named: name), "Missing bundled weather image: \(name)")
+                XCTAssertGreaterThan(image.size.height, image.size.width)
+            }
+        }
+        XCTAssertNil(WeatherBackdropStyle.calm.imageName)
     }
 }
