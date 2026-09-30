@@ -26,6 +26,7 @@ struct RadarMapView: UIViewRepresentable {
             LocationDotAnnotationView.self,
             forAnnotationViewWithReuseIdentifier: LocationDotAnnotationView.reuseIdentifier
         )
+        mapView.addOverlay(context.coordinator.overlay, level: .aboveRoads)
 
         if isInteractive {
             mapView.showsCompass = true
@@ -65,18 +66,21 @@ struct RadarMapView: UIViewRepresentable {
     @MainActor
     final class Coordinator: NSObject, MKMapViewDelegate {
         private static let radarAlpha: CGFloat = 0.8
-        /// Long enough for the incoming frame's cached tiles to draw before the outgoing
-        /// frame is removed, so frame changes never flash an empty map.
-        private static let handoffDelay: TimeInterval = 0.25
         private static let maximumConcurrentTileLoads = 12
         private static let maximumTilesPerZoom = 48
 
         var onPrefetchUpdate: ((RadarPrefetchUpdate) -> Void)?
 
+        let overlay = RadarFramesOverlay()
+        private lazy var renderer: RadarFramesRenderer = {
+            let renderer = RadarFramesRenderer(overlay: overlay)
+            renderer.alpha = Self.radarAlpha
+            return renderer
+        }()
+
         private var annotation: MKPointAnnotation?
         private var frames: [RadarFrame] = []
         private var displayedFrameID: String?
-        private var currentOverlay: (any RadarTileOverlay)?
         private var lastLocationID: UUID?
         private var lastRecenterToken = -1
         private var prefetchTask: Task<Void, Never>?
@@ -128,6 +132,7 @@ struct RadarMapView: UIViewRepresentable {
         ) {
             if frames.map(\.id) != self.frames.map(\.id) {
                 self.frames = frames
+                renderer.retainLoaders(for: frames)
                 requestPrefetch(on: mapView)
 
                 if let displayedFrameID, !frames.contains(where: { $0.id == displayedFrameID }) {
@@ -144,22 +149,12 @@ struct RadarMapView: UIViewRepresentable {
             regionPrefetchWork?.cancel()
         }
 
+        /// Frames swap by redrawing the one overlay in place, so the map never shows two
+        /// frames stacked or none at all between them.
         private func show(frameID: String?, on mapView: MKMapView) {
             displayedFrameID = frameID
-            let outgoing = currentOverlay
-
-            if let frameID, let frame = frames.first(where: { $0.id == frameID }) {
-                let overlay = RadarTileOverlayFactory.overlay(for: frame)
-                currentOverlay = overlay
-                mapView.addOverlay(overlay, level: .aboveRoads)
-            } else {
-                currentOverlay = nil
-            }
-
-            guard let outgoing else { return }
-            DispatchQueue.main.asyncAfter(deadline: .now() + Self.handoffDelay) { [weak mapView] in
-                mapView?.removeOverlay(outgoing)
-            }
+            renderer.display(frames.first { $0.id == frameID })
+            renderer.setNeedsDisplay()
         }
 
         // MARK: Prefetching
@@ -179,7 +174,7 @@ struct RadarMapView: UIViewRepresentable {
         private func schedulePrefetch(on mapView: MKMapView) {
             prefetchTask?.cancel()
 
-            if let zoom = currentOverlay?.zoomRecorder.lastRequestedZoom {
+            if let zoom = renderer.lastRequestedZoom {
                 lastKnownZoom = zoom
             }
 
@@ -192,7 +187,7 @@ struct RadarMapView: UIViewRepresentable {
             }
 
             let overlays = Dictionary(uniqueKeysWithValues: frames.map {
-                ($0.id, RadarTileOverlayFactory.overlay(for: $0))
+                ($0.id, renderer.loader(for: $0))
             })
             let primaryJobs = frames.flatMap { frame in
                 tiles.primary.map { PrefetchJob(frameID: frame.id, path: $0, gatesReadiness: true) }
@@ -330,9 +325,7 @@ struct RadarMapView: UIViewRepresentable {
             _ mapView: MKMapView,
             rendererFor overlay: MKOverlay
         ) -> MKOverlayRenderer {
-            if let tileOverlay = overlay as? any RadarTileOverlay {
-                let renderer = MKTileOverlayRenderer(tileOverlay: tileOverlay)
-                renderer.alpha = Self.radarAlpha
+            if overlay === self.overlay {
                 return renderer
             }
 

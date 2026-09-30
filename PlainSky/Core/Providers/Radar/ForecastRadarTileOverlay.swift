@@ -8,6 +8,8 @@ protocol RadarTileOverlay: MKTileOverlay {
     var zoomRecorder: RequestedZoomRecorder { get }
 
     func prefetchTile(at path: MKTileOverlayPath, result: @escaping (Data?, Error?) -> Void)
+    /// The finished tile if it has already been loaded, without starting a load.
+    func cachedTile(at path: MKTileOverlayPath) -> Data?
 }
 
 /// Records the zoom level MapKit actually requests, so prefetching can target it exactly.
@@ -164,6 +166,10 @@ final class ForecastRadarTileOverlay: MKTileOverlay, RadarTileOverlay {
     ) {
         prefetchTile(at: path, result: result)
         zoomRecorder.record(path)
+    }
+
+    func cachedTile(at path: MKTileOverlayPath) -> Data? {
+        Self.tileCache.object(forKey: url(forTilePath: path) as NSURL) as Data?
     }
 
     /// Same as `loadTile` but without recording the zoom, for prefetch requests.

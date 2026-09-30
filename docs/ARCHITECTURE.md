@@ -95,6 +95,8 @@ Actual radar imagery will come from NOAA/NCEP. The radar UI never fabricates ech
 
 Both radar sources publish nearest-neighbor imagery, so each tile is smoothed on device before MapKit draws it: the tile is fetched with a margin of surrounding data (a padded WMS request for NOAA, stitched neighboring tiles for HRRR), blurred by about half a radar cell, and scaled up with bicubic interpolation. Smoothing only blends between cells; it never adds or removes echoes.
 
+Playback draws every frame through one map overlay that is redrawn in place from cached tiles, so a frame change is a clean cut: two frames are never stacked and the map never goes blank between them.
+
 ## Accessibility and appearance
 
 - System, Light, and Dark appearance are supported.

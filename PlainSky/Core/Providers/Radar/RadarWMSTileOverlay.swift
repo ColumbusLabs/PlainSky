@@ -134,6 +134,10 @@ final class RadarWMSTileOverlay: MKTileOverlay {
         zoomRecorder.record(path)
     }
 
+    func cachedTile(at path: MKTileOverlayPath) -> Data? {
+        Self.tileCache.object(forKey: url(forTilePath: path) as NSURL) as Data?
+    }
+
     /// Same as `loadTile` but without recording the zoom, for prefetch requests.
     func prefetchTile(
         at path: MKTileOverlayPath,
