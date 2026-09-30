@@ -93,6 +93,8 @@ MapKit is only the basemap and interaction layer.
 
 Actual radar imagery will come from NOAA/NCEP. The radar UI never fabricates echoes, frame timestamps, or future radar. If Reduce Motion is enabled, animation remains paused and manual timeline scrubbing remains available.
 
+Both radar sources publish nearest-neighbor imagery, so each tile is smoothed on device before MapKit draws it: the tile is fetched with a margin of surrounding data (a padded WMS request for NOAA, stitched neighboring tiles for HRRR), blurred by about half a radar cell, and scaled up with bicubic interpolation. Smoothing only blends between cells; it never adds or removes echoes.
+
 ## Accessibility and appearance
 
 - System, Light, and Dark appearance are supported.

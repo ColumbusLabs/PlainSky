@@ -1,6 +1,5 @@
 import CoreGraphics
-import ImageIO
-import UniformTypeIdentifiers
+import MapKit
 import XCTest
 @testable import PlainSky
 
@@ -51,12 +50,12 @@ final class ForecastRadarTests: XCTestCase {
     }
 
     func testRecolorMapsKnownReflectivityAndDropsUnknownColors() throws {
-        let green: (UInt8, UInt8, UInt8) = (13, 158, 17)
-        let unknown: (UInt8, UInt8, UInt8) = (1, 2, 3)
-        let image = try makeImage(width: 2, height: 1, pixels: [green, unknown])
+        let image = try RadarTestImages.make(width: 2, height: 1) { x, _ in
+            x == 0 ? (13, 158, 17, 255) : (1, 2, 3, 255)
+        }
 
         let recolored = try XCTUnwrap(ForecastRadarTileOverlay.recolor(image))
-        let pixels = try rgbaPixels(of: recolored)
+        let pixels = try RadarTestImages.rgbaPixels(of: recolored)
 
         let mapped = try XCTUnwrap(ForecastRadarPalette.iemToNOAA[0x0D9E11])
         XCTAssertEqual(pixels[0], UInt8((mapped >> 16) & 0xFF))
@@ -66,69 +65,99 @@ final class ForecastRadarTests: XCTestCase {
         XCTAssertEqual(pixels[7], 0)
     }
 
-    func testSmoothedTileDoublesResolution() throws {
-        let image = try makeImage(
-            width: 256,
-            height: 256,
-            pixels: Array(repeating: (13, 158, 17), count: 256 * 256)
-        )
-        let data = try XCTUnwrap(pngData(image))
+    func testSourcePlanUsesTheTileItselfWhereCellsAreSubPixel() {
+        let path = MKTileOverlayPath(x: 7, y: 12, z: 5, contentScaleFactor: 2)
 
-        let smoothed = try XCTUnwrap(ForecastRadarTileOverlay.smoothedTile(from: data))
-        let source = try XCTUnwrap(CGImageSourceCreateWithData(smoothed as CFData, nil))
-        let output = try XCTUnwrap(CGImageSourceCreateImageAtIndex(source, 0, nil))
+        let plan = ForecastRadarTileOverlay.sourcePlan(for: path, minimumZoom: 2)
 
-        XCTAssertEqual(output.width, 512)
-        XCTAssertEqual(output.height, 512)
+        XCTAssertEqual(plan.zoom, 5)
+        XCTAssertNil(plan.smoothing)
+        XCTAssertEqual(plan.footprintPixels, 256)
+        XCTAssertEqual(plan.region, CGRect(x: 7 * 256, y: 12 * 256, width: 256, height: 256))
+        XCTAssertEqual(plan.sourceTiles.count, 1)
+        XCTAssertEqual(plan.sourceTiles.first?.x, 7)
+        XCTAssertEqual(plan.sourceTiles.first?.y, 12)
     }
 
-    private func makeImage(width: Int, height: Int, pixels: [(UInt8, UInt8, UInt8)]) throws -> CGImage {
-        var bytes = [UInt8]()
-        for (red, green, blue) in pixels {
-            bytes += [red, green, blue, 255]
+    func testSourcePlanStitchesNeighborsAtTheSameZoom() throws {
+        let path = MKTileOverlayPath(x: 62, y: 95, z: 8, contentScaleFactor: 2)
+
+        let plan = ForecastRadarTileOverlay.sourcePlan(for: path, minimumZoom: 2)
+        let smoothing = try XCTUnwrap(plan.smoothing)
+
+        XCTAssertEqual(plan.zoom, 8)
+        XCTAssertEqual(plan.footprintPixels, 256)
+        XCTAssertEqual(plan.region.width, CGFloat(256 + 2 * smoothing.margin))
+        XCTAssertEqual(plan.sourceTiles.count, 9)
+        XCTAssertTrue(plan.sourceTiles.allSatisfy { $0.z == 8 && (61...63).contains($0.x) && (94...96).contains($0.y) })
+    }
+
+    func testSourcePlanUsesCoarserTilesWhenZoomedIn() throws {
+        let path = MKTileOverlayPath(x: 1_000, y: 800, z: 11, contentScaleFactor: 2)
+
+        let plan = ForecastRadarTileOverlay.sourcePlan(for: path, minimumZoom: 2)
+        let smoothing = try XCTUnwrap(plan.smoothing)
+
+        XCTAssertEqual(plan.zoom, 8)
+        XCTAssertEqual(plan.footprintPixels, 32)
+        XCTAssertEqual(plan.region.width, CGFloat(32 + 2 * smoothing.margin))
+        XCTAssertEqual(plan.sourceTiles.count, 4)
+        XCTAssertTrue(plan.sourceTiles.allSatisfy { $0.z == 8 })
+        XCTAssertTrue(plan.sourceTiles.contains { $0.x == 125 && $0.y == 100 })
+    }
+
+    func testSourcePlanNeverGoesBelowMinimumZoom() {
+        let path = MKTileOverlayPath(x: 3, y: 5, z: 9, contentScaleFactor: 2)
+
+        let plan = ForecastRadarTileOverlay.sourcePlan(for: path, minimumZoom: 9)
+
+        XCTAssertEqual(plan.zoom, 9)
+        XCTAssertEqual(plan.footprintPixels, 256)
+    }
+
+    func testSmoothedTileStitchesNeighborsIntoFullSizeTile() throws {
+        let path = MKTileOverlayPath(x: 62, y: 95, z: 8, contentScaleFactor: 2)
+        let plan = ForecastRadarTileOverlay.sourcePlan(for: path, minimumZoom: 2)
+
+        let green = try RadarTestImages.make(width: 256, height: 256) { _, _ in (0, 200, 0, 255) }
+        let red = try RadarTestImages.make(width: 256, height: 256) { _, _ in (200, 0, 0, 255) }
+        let sources = plan.sourceTiles.map { source in
+            (path: source, image: source.x == 62 && source.y == 95 ? green : red)
         }
 
-        let provider = try XCTUnwrap(CGDataProvider(data: Data(bytes) as CFData))
-        return try XCTUnwrap(
-            CGImage(
-                width: width,
-                height: height,
-                bitsPerComponent: 8,
-                bitsPerPixel: 32,
-                bytesPerRow: width * 4,
-                space: CGColorSpace(name: CGColorSpace.sRGB)!,
-                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
-                provider: provider,
-                decode: nil,
-                shouldInterpolate: false,
-                intent: .defaultIntent
-            )
-        )
+        let tile = try XCTUnwrap(ForecastRadarTileOverlay.smoothedTile(from: sources, plan: plan))
+        let image = try XCTUnwrap(RadarTileSmoother.decode(tile))
+        let pixels = try RadarTestImages.rgbaPixels(of: image)
+
+        XCTAssertEqual(image.width, 512)
+        XCTAssertEqual(image.height, 512)
+
+        let center = RadarTestImages.pixel(pixels, x: 256, y: 256, width: 512)
+        XCTAssertEqual(center.green, 200, accuracy: 2)
+        XCTAssertEqual(center.red, 0, accuracy: 2)
+
+        // Edges blend into the neighbors' data instead of fading into transparency.
+        let edge = RadarTestImages.pixel(pixels, x: 0, y: 256, width: 512)
+        XCTAssertEqual(edge.alpha, 255, accuracy: 1)
+        XCTAssertGreaterThan(edge.red, 30)
+        XCTAssertGreaterThan(edge.green, 30)
     }
 
-    private func rgbaPixels(of image: CGImage) throws -> [UInt8] {
-        var pixels = [UInt8](repeating: 0, count: image.width * image.height * 4)
-        let context = try XCTUnwrap(
-            CGContext(
-                data: &pixels,
-                width: image.width,
-                height: image.height,
-                bitsPerComponent: 8,
-                bytesPerRow: image.width * 4,
-                space: CGColorSpace(name: CGColorSpace.sRGB)!,
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    func testSmoothedTileToleratesMissingNeighbors() throws {
+        let path = MKTileOverlayPath(x: 0, y: 0, z: 8, contentScaleFactor: 2)
+        let plan = ForecastRadarTileOverlay.sourcePlan(for: path, minimumZoom: 2)
+        let green = try RadarTestImages.make(width: 256, height: 256) { _, _ in (0, 200, 0, 255) }
+
+        let tile = try XCTUnwrap(
+            ForecastRadarTileOverlay.smoothedTile(
+                from: [(path: MKTileOverlayPath(x: 0, y: 0, z: 8, contentScaleFactor: 1), image: green)],
+                plan: plan
             )
         )
-        context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
-        return pixels
-    }
+        let image = try XCTUnwrap(RadarTileSmoother.decode(tile))
+        let pixels = try RadarTestImages.rgbaPixels(of: image)
 
-    private func pngData(_ image: CGImage) -> Data? {
-        let data = NSMutableData()
-        guard let destination = CGImageDestinationCreateWithData(data, UTType.png.identifier as CFString, 1, nil) else {
-            return nil
-        }
-        CGImageDestinationAddImage(destination, image, nil)
-        return CGImageDestinationFinalize(destination) ? data as Data : nil
+        XCTAssertEqual(image.width, 512)
+        XCTAssertEqual(RadarTestImages.pixel(pixels, x: 256, y: 256, width: 512).green, 200, accuracy: 2)
     }
 }
