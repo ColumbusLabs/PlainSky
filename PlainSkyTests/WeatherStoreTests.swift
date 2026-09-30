@@ -136,6 +136,84 @@ final class WeatherStoreTests: XCTestCase {
         XCTAssertFalse(store.screenState.hourly.isLoading)
     }
 
+    func testLiveLaunchHoldsRevealUntilRefreshFinishes() async throws {
+        let store = try freshOnlyStore(now: Date())
+        XCTAssertTrue(store.isHoldingReveal, "A live launch has no weather to pick a background from yet.")
+
+        await store.refresh(trigger: .startup)
+
+        XCTAssertFalse(store.isHoldingReveal, "A finished load always ends the hold, even without values.")
+    }
+
+    func testPreviewDataNeverHoldsReveal() {
+        let store = WeatherStore(repository: PreviewWeatherRepository())
+
+        XCTAssertFalse(store.isHoldingReveal)
+    }
+
+    func testRevealWaitsForProductsThatChooseTheBackground() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let store = try freshOnlyStore(now: now)
+        XCTAssertFalse(store.isReadyToReveal)
+
+        store.screenState.current = nwsCurrent(
+            validatedAt: now,
+            observedAt: now.addingTimeInterval(-10 * 60)
+        )
+        store.screenState.hourly = .unavailable("No hourly forecast.")
+        store.screenState.daily = .unavailable("No daily forecast.")
+        XCTAssertFalse(store.isReadyToReveal, "Sunrise and sunset decide day or night.")
+
+        store.screenState.solarEvents = .unsupported("No solar data.")
+        XCTAssertTrue(store.isReadyToReveal)
+    }
+
+    func testLongResumeHoldsRevealAgain() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let store = try freshOnlyStore(now: now)
+        store.releaseReveal()
+        store.screenState.current = nwsCurrent(
+            validatedAt: now.addingTimeInterval(-60),
+            observedAt: now.addingTimeInterval(-20 * 60)
+        )
+
+        store.prepareForInactivity(at: now.addingTimeInterval(-10 * 60))
+        store.prepareForActive(at: now)
+
+        XCTAssertTrue(store.isHoldingReveal)
+    }
+
+    func testBriefResumeWithReusableCurrentDoesNotHoldReveal() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let store = try freshOnlyStore(now: now)
+        store.releaseReveal()
+        store.screenState.current = nwsCurrent(
+            validatedAt: now.addingTimeInterval(-2 * 60),
+            observedAt: now.addingTimeInterval(-20 * 60)
+        )
+
+        store.prepareForInactivity(at: now.addingTimeInterval(-60))
+        store.prepareForActive(at: now)
+
+        XCTAssertFalse(store.isHoldingReveal)
+    }
+
+    func testFirstActivationWithoutInactivityKeepsProducts() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let store = try freshOnlyStore(now: now)
+        store.screenState.alerts = .available(
+            [],
+            WeatherValidationMetadata(provider: .nwsForecast, validatedAt: now.addingTimeInterval(-10 * 60))
+        )
+
+        store.prepareForActive(at: now)
+
+        XCTAssertNotNil(
+            store.screenState.alerts.value,
+            "Becoming active at launch is not a resume, so nothing is cleared for recheck."
+        )
+    }
+
     private func freshOnlyStore(
         now: Date,
         repository: (any WeatherRepository)? = nil

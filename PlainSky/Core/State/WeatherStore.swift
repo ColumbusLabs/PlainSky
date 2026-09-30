@@ -10,6 +10,10 @@ final class WeatherStore {
     var isRefreshing = false
     private(set) var isRefreshInFlight = false
     var isScreenMasked = false
+    /// True while a cold start or resume has no current conditions yet. The
+    /// app holds a loading screen instead of showing a background that may not
+    /// match the weather, until `isReadyToReveal` or the caller's time limit.
+    private(set) var isHoldingReveal = false
     var lastRefreshError: String?
     var isShowingPlaceholderData: Bool
 
@@ -59,6 +63,20 @@ final class WeatherStore {
         }
         self.snapshot = initialSnapshot
         self.screenState = initialScreenState ?? WeatherScreenState(preview: initialSnapshot)
+        isHoldingReveal = usesFreshOnlyState && !isReadyToReveal
+    }
+
+    /// The products that decide the background and the top of the Today
+    /// screen have each resolved, whether with a value or an error.
+    var isReadyToReveal: Bool {
+        !screenState.current.isLoading
+            && !screenState.hourly.isLoading
+            && !screenState.daily.isLoading
+            && !screenState.solarEvents.isLoading
+    }
+
+    func releaseReveal() {
+        isHoldingReveal = false
     }
 
     func refreshIfNeeded(
@@ -181,6 +199,8 @@ final class WeatherStore {
             isRefreshing = false
             isRefreshInFlight = false
             activeLoad = nil
+            // Nothing more is coming from this load, so hold no longer.
+            releaseReveal()
         }
     }
 
@@ -340,7 +360,7 @@ final class WeatherStore {
             screenState = WeatherScreenState(location: screenState.location)
             isShowingPlaceholderData = false
             lastRefreshError = nil
-        } else if usesFreshOnlyState {
+        } else if usesFreshOnlyState, inactiveAt != nil {
             // A brief interruption keeps only products still inside their reuse
             // caps. The rest show as loading because the activation refresh
             // that follows will check them again.
@@ -354,6 +374,9 @@ final class WeatherStore {
         }
         inactiveAt = nil
         isScreenMasked = false
+        if usesFreshOnlyState, screenState.current.isLoading {
+            isHoldingReveal = true
+        }
     }
 
     /// Ages values out while the app stays in the foreground, using each
@@ -645,6 +668,9 @@ final class WeatherStore {
             WeatherInstrumentation.mark("Weather owned refresh complete")
         }
         markFreshnessMilestones()
+        if isHoldingReveal, isReadyToReveal {
+            releaseReveal()
+        }
     }
 
     private func acceptsRouteRevision(_ revision: String?) -> Bool {
