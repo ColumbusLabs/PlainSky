@@ -9,6 +9,12 @@ struct RootTabView: View {
     /// app anyway; slower sections then fill in on screen.
     private static let revealTimeLimit: Duration = .milliseconds(1500)
 
+    /// Simulator smoke tests pass this so the system permission prompt doesn't
+    /// cover their screenshots.
+    private static var skipsNotificationPrompt: Bool {
+        ProcessInfo.processInfo.arguments.contains("--skip-notification-prompt")
+    }
+
     private var selection: Binding<AppTab> {
         Binding(
             get: { router.selectedTab },
@@ -58,7 +64,8 @@ struct RootTabView: View {
         .task {
             syncSharedState()
             WeatherBackgroundRefresh.schedule()
-            if await WeatherNotifier.shared.authorizationStatus() == .notDetermined {
+            if !Self.skipsNotificationPrompt,
+               await WeatherNotifier.shared.authorizationStatus() == .notDetermined {
                 await WeatherNotifier.shared.requestAuthorization()
             }
             await AlertPushRegistration.shared.registerForRemoteNotificationsIfAllowed()
