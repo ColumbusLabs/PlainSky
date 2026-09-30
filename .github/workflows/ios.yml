@@ -87,9 +87,14 @@ jobs:
           xcrun simctl bootstatus "$UDID" -b
           mkdir -p visual-smoke
           xcrun simctl install "$UDID" DerivedData/Build/Products/Debug-iphonesimulator/PlainSky.app
+          # The first launch after install on a fresh simulator can take close
+          # to two minutes, so warm it up here instead of inside a capture step.
+          xcrun simctl launch "$UDID" com.columbuslabs.weatherapp --skip-onboarding --skip-notification-prompt --preview-data
+          sleep 5
+          xcrun simctl terminate "$UDID" com.columbuslabs.weatherapp || true
 
       - name: Capture Today dark
-        timeout-minutes: 2
+        timeout-minutes: 4
         run: |
           UDID="${{ steps.simulator.outputs.udid }}"
           xcrun simctl ui "$UDID" appearance dark
