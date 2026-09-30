@@ -5,6 +5,16 @@ struct RootTabView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var router = AppRouter()
 
+    /// Longest the launch loading screen waits for weather before showing the
+    /// app anyway; slower sections then fill in on screen.
+    private static let revealTimeLimit: Duration = .milliseconds(1500)
+
+    /// Simulator smoke tests pass this so the system permission prompt doesn't
+    /// cover their screenshots.
+    private static var skipsNotificationPrompt: Bool {
+        ProcessInfo.processInfo.arguments.contains("--skip-notification-prompt")
+    }
+
     private var selection: Binding<AppTab> {
         Binding(
             get: { router.selectedTab },
@@ -50,10 +60,12 @@ struct RootTabView: View {
         .tint(WeatherTheme.accent)
         .toolbarBackground(.ultraThinMaterial, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
+        .accessibilityHidden(store.isHoldingReveal)
         .task {
             syncSharedState()
             WeatherBackgroundRefresh.schedule()
-            if await WeatherNotifier.shared.authorizationStatus() == .notDetermined {
+            if !Self.skipsNotificationPrompt,
+               await WeatherNotifier.shared.authorizationStatus() == .notDetermined {
                 await WeatherNotifier.shared.requestAuthorization()
             }
             await AlertPushRegistration.shared.registerForRemoteNotificationsIfAllowed()
@@ -95,11 +107,26 @@ struct RootTabView: View {
                 }
             }
         }
+        .task(id: store.isHoldingReveal) {
+            guard store.isHoldingReveal else { return }
+            try? await Task.sleep(for: Self.revealTimeLimit)
+            guard !Task.isCancelled else { return }
+            store.releaseReveal()
+        }
         .overlay {
+            ZStack {
+                if store.isHoldingReveal {
+                    LaunchLoadingView()
+                        .transition(.opacity)
+                }
+            }
+            .animation(.easeOut(duration: 0.3), value: store.isHoldingReveal)
+        }
+        .overlay {
+            // Privacy cover for the app switcher. It matches the launch screen
+            // so a cold launch or resume never flashes a different color.
             if scenePhase != .active || store.isScreenMasked {
-                Color(uiColor: .systemBackground)
-                    .ignoresSafeArea()
-                    .accessibilityHidden(true)
+                LaunchLoadingView(showsProgress: false)
             }
         }
     }
