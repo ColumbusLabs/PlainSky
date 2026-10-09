@@ -5,7 +5,7 @@ Prepared September 29, 2026 for the English (U.S.) listing.
 ## App information
 
 - Name: PlainSky
-- Subtitle: Weather, radar & alerts. Free.
+- Subtitle: NWS forecasts, radar & alerts
 - Primary category: Weather
 - Price: Free in every configured storefront. No in-app purchases, subscriptions, ads, or paid feature tiers.
 - Age rating: Apple calculated 4+ from the completed content questionnaire. This is a general-audience weather app, not a Kids category app.
@@ -14,6 +14,8 @@ Prepared September 29, 2026 for the English (U.S.) listing.
 - Source: https://github.com/ColumbusLabs/PlainSky
 - Support: https://github.com/ColumbusLabs/PlainSky/blob/main/docs/SUPPORT.md
 - Privacy policy: https://github.com/ColumbusLabs/PlainSky/blob/main/docs/PRIVACY.md
+
+Name, subtitle, and keywords must not reference price, including "free" (App Review Guideline 2.3.7, cited when 1.0.0 (4) was rejected). Price messaging belongs only in the promotional text and description.
 
 ## Promotional text
 
@@ -44,7 +46,7 @@ PlainSky requires iOS 17 or later and an internet connection for fresh weather d
 
 ## Keywords
 
-forecast,radar,NOAA,NWS,rain,temperature,storm,alerts,widget,precipitation,free,ad-free
+forecast,radar,NOAA,NWS,rain,temperature,storm,alerts,widget,precipitation,hourly,ad-free
 
 ## License
 
