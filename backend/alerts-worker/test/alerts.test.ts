@@ -92,6 +92,20 @@ test("warnings are time-sensitive and carry the place name", () => {
   assert.equal(buildNotification(alert({}), device, now).timeSensitive, false);
 });
 
+test("notification body prefers the forecaster headline over the issued-by headline", () => {
+  const sps = alert({
+    event: "Special Weather Statement",
+    headline: "Special Weather Statement issued October 12 at 12:46AM EDT by NWS Indianapolis IN",
+    parameters: { NWSheadline: ["AREAS OF FOG, LOCALLY DENSE THROUGH DAYBREAK"] },
+  });
+  assert.equal(buildNotification(sps, device, now).body, "AREAS OF FOG, LOCALLY DENSE THROUGH DAYBREAK");
+  assert.equal(buildNotification(alert({}), device, now).body, "Flood Watch until tomorrow");
+  assert.equal(
+    buildNotification(alert({ headline: null, description: "Fog could\nreduce visibility." }), device, now).body,
+    "Fog could reduce visibility."
+  );
+});
+
 test("coordinates are coarsened to about 1 km", () => {
   assert.equal(coarse(35.924871), 35.92);
   assert.equal(coarse(-86.868812), -86.87);

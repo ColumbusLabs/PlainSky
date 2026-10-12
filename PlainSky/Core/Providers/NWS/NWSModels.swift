@@ -157,6 +157,14 @@ struct NWSAlertProperties: Decodable, Sendable {
     let senderName: String?
     var messageType: String? = nil
     var references: [NWSAlertReference]? = nil
+    var areaDesc: String? = nil
+    var parameters: NWSAlertParameters? = nil
+}
+
+struct NWSAlertParameters: Decodable, Sendable {
+    /// The forecaster's short summary, e.g. "AREAS OF FOG, LOCALLY DENSE
+    /// THROUGH DAYBREAK". `headline` is only "<event> issued <time> by <office>".
+    var NWSheadline: [String]? = nil
 }
 
 struct NWSAlertReference: Decodable, Sendable {

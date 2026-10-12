@@ -40,6 +40,8 @@ export interface NWSAlert {
     ends?: string | null;
     references?: { "@id": string }[] | null;
     geocode?: { UGC?: string[] | null } | null;
+    /** NWSheadline is the forecaster's summary; `headline` is only "<event> issued <time> by <office>". */
+    parameters?: { NWSheadline?: string[] | null } | null;
   };
 }
 
@@ -142,7 +144,12 @@ export function decide(
 export function buildNotification(alert: NWSAlert, device: Device, now: number): Notification {
   const props = alert.properties;
   const severity = (props.severity ?? "").toLowerCase();
-  const body = props.headline?.trim() || (props.description ?? "").trim().slice(0, 240) || props.event;
+  const body =
+    props.parameters?.NWSheadline?.[0]?.trim() ||
+    props.headline?.trim() ||
+    // NWS text is hard-wrapped; collapse line breaks before truncating.
+    (props.description ?? "").replace(/\s+/g, " ").trim().slice(0, 240) ||
+    props.event;
   return {
     alertId: alert.id,
     title: props.event,

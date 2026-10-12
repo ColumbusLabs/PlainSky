@@ -269,6 +269,8 @@ struct WeatherAlert: Codable, Identifiable, Hashable, Sendable {
     var messageType: String? = nil
     /// IDs of earlier messages this one updates or replaces.
     var referencedIDs: [String]? = nil
+    /// Affected counties or zones as NWS lists them, separated by "; ".
+    var areas: String? = nil
 }
 
 struct SolarWeather: Codable, Hashable, Sendable {

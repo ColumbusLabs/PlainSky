@@ -254,6 +254,65 @@ final class NWSMapperTests: XCTestCase {
         XCTAssertEqual(alerts[0].severity, .severe)
     }
 
+    func testAlertPrefersForecasterHeadlineAndKeepsAreas() throws {
+        let fetchedAt = try XCTUnwrap(NWSParsing.date("2026-10-12T05:00:00Z"))
+        let properties = NWSAlertProperties(
+            event: "Special Weather Statement",
+            headline: "Special Weather Statement issued October 12 at 12:46AM EDT by NWS Indianapolis IN",
+            description: "If traveling through these areas this morning, be prepared for\nfog that could suddenly reduce visibilities to 1/4 mile or less.\n\nSlow down and allow\nextra time.",
+            instruction: nil,
+            severity: "Moderate",
+            sent: "2026-10-12T04:46:00Z",
+            effective: "2026-10-12T04:46:00Z",
+            expires: "2026-10-12T12:00:00Z",
+            senderName: "NWS Indianapolis IN",
+            areaDesc: "Carroll; Warren; Tippecanoe",
+            parameters: NWSAlertParameters(NWSheadline: ["AREAS OF FOG, LOCALLY DENSE THROUGH DAYBREAK"])
+        )
+
+        let alerts = NWSMapper.alerts(
+            collection: NWSAlertCollection(features: [NWSAlertFeature(id: "sps", properties: properties)]),
+            fetchedAt: fetchedAt
+        )
+
+        XCTAssertEqual(alerts[0].headline, "AREAS OF FOG, LOCALLY DENSE THROUGH DAYBREAK")
+        XCTAssertEqual(alerts[0].areas, "Carroll; Warren; Tippecanoe")
+        XCTAssertEqual(
+            alerts[0].description,
+            "If traveling through these areas this morning, be prepared for fog that could suddenly reduce visibilities to 1/4 mile or less.\n\nSlow down and allow extra time."
+        )
+    }
+
+    func testAlertFallsBackToNWSHeadlineWithoutForecasterSummary() throws {
+        let fetchedAt = try XCTUnwrap(NWSParsing.date("2026-09-19T22:00:00Z"))
+        let alerts = NWSMapper.alerts(
+            collection: NWSAlertCollection(features: [
+                alertFeature(id: "tor", event: "Tornado Warning", severity: "Extreme")
+            ]),
+            fetchedAt: fetchedAt
+        )
+
+        XCTAssertEqual(alerts[0].headline, "Tornado Warning headline")
+        XCTAssertNil(alerts[0].areas)
+    }
+
+    func testDecodesHeadlineParameterAndAreaFromNWSPayload() throws {
+        let json = Data("""
+        {"features":[{"id":"x","properties":{
+          "event":"Special Weather Statement",
+          "headline":"Special Weather Statement issued October 12 at 12:46AM EDT by NWS Indianapolis IN",
+          "description":"Fog.","instruction":null,"severity":"Moderate",
+          "effective":"2026-10-12T00:46:00-04:00","areaDesc":"Carroll; Warren",
+          "parameters":{"AWIPSidentifier":["SPSIND"],"NWSheadline":["AREAS OF FOG"]}
+        }}]}
+        """.utf8)
+
+        let collection = try JSONDecoder().decode(NWSAlertCollection.self, from: json)
+
+        XCTAssertEqual(collection.features[0].properties.parameters?.NWSheadline, ["AREAS OF FOG"])
+        XCTAssertEqual(collection.features[0].properties.areaDesc, "Carroll; Warren")
+    }
+
     private func qv(_ unit: String, _ value: Double?) -> NWSQuantitativeValue {
         NWSQuantitativeValue(unitCode: unit, value: value)
     }

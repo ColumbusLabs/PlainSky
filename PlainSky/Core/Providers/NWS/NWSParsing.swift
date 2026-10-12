@@ -26,6 +26,38 @@ enum NWSParsing {
         return fractionalFormatter.date(from: string) ?? standardFormatter.date(from: string)
     }
 
+    /// NWS product text is hard-wrapped at about 70 columns. Joins wrapped
+    /// lines back into paragraphs without changing any words. Blank lines
+    /// separate paragraphs, and "* " or "- " lines start a new one.
+    static func unwrapped(_ text: String) -> String {
+        var paragraphs: [String] = []
+        var current: [String] = []
+
+        func flush() {
+            guard !current.isEmpty else { return }
+            paragraphs.append(current.joined(separator: " "))
+            current = []
+        }
+
+        let lines = text
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .components(separatedBy: "\n")
+        for rawLine in lines {
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+            if line.isEmpty {
+                flush()
+                continue
+            }
+            if line.hasPrefix("* ") || line.hasPrefix("- ") {
+                flush()
+            }
+            current.append(line)
+        }
+        flush()
+
+        return paragraphs.joined(separator: "\n\n")
+    }
+
     static func interval(_ string: String) -> (start: Date, end: Date)? {
         let parts = string.split(separator: "/", maxSplits: 1).map(String.init)
         guard parts.count == 2,

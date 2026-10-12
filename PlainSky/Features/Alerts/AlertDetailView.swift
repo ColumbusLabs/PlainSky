@@ -5,6 +5,8 @@ struct AlertDetailView: View {
 
     let alert: WeatherAlert
 
+    @State private var showsAllAreas = false
+
     var body: some View {
         ZStack {
             WeatherBackdrop(style: .current(for: store.screenState))
@@ -13,6 +15,11 @@ struct AlertDetailView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     hero
                     timingCard
+
+                    if !areas.isEmpty {
+                        areasCard
+                    }
+
                     messageCard
 
                     if let instructions = alert.instructions, !instructions.isEmpty {
@@ -94,6 +101,40 @@ struct AlertDetailView: View {
                 if let expiresAt = alert.expiresAt {
                     Divider().overlay(WeatherTheme.divider)
                     AlertTimingRow(label: "Expires", date: expiresAt)
+                }
+            }
+        }
+    }
+
+    private var areas: [String] {
+        (alert.areas ?? "")
+            .split(separator: ";")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+    }
+
+    private var areasCard: some View {
+        let collapsedCount = 8
+        let isCollapsible = areas.count > collapsedCount + 2
+        let shown = isCollapsible && !showsAllAreas
+            ? Array(areas.prefix(collapsedCount))
+            : areas
+
+        return WeatherCard {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionHeader(title: "Affected areas")
+
+                Text(shown.joined(separator: "; ") + (shown.count < areas.count ? "…" : ""))
+                    .font(.body)
+                    .foregroundStyle(WeatherTheme.primaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if isCollapsible {
+                    Button(showsAllAreas ? "Show fewer" : "Show all \(areas.count) areas") {
+                        withAnimation(.snappy) { showsAllAreas.toggle() }
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(WeatherTheme.accent)
                 }
             }
         }

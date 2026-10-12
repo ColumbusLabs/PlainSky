@@ -12,6 +12,15 @@ final class NWSParsingTests: XCTestCase {
         XCTAssertEqual(interval.end.timeIntervalSince(interval.start), 10_800, accuracy: 0.1)
     }
 
+    func testUnwrapsHardWrappedProductText() {
+        let text = "* WHAT...Dense fog with visibility\n  one quarter mile or less.\n\n* WHERE...Central Indiana.\r\n\nSlow down.\n- Use low beams.\n"
+
+        XCTAssertEqual(
+            NWSParsing.unwrapped(text),
+            "* WHAT...Dense fog with visibility one quarter mile or less.\n\n* WHERE...Central Indiana.\n\nSlow down.\n\n- Use low beams."
+        )
+    }
+
     func testParsesLongDuration() throws {
         XCTAssertEqual(
             try XCTUnwrap(NWSParsing.duration("P7DT17H")),

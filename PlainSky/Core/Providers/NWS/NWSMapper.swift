@@ -301,13 +301,15 @@ enum NWSMapper {
             return WeatherAlert(
                 id: feature.id,
                 event: feature.properties.event,
-                headline: nonEmpty(feature.properties.headline)
+                headline: nonEmpty(feature.properties.parameters?.NWSheadline?.first)
+                    ?? nonEmpty(feature.properties.headline)
                     ?? feature.properties.event,
                 severity: alertSeverity(feature.properties.severity),
                 effectiveAt: effectiveAt,
                 expiresAt: expiresAt,
-                description: feature.properties.description,
-                instructions: nonEmpty(feature.properties.instruction),
+                description: NWSParsing.unwrapped(feature.properties.description),
+                instructions: nonEmpty(feature.properties.instruction)
+                    .map(NWSParsing.unwrapped),
                 issuingOffice: nonEmpty(feature.properties.senderName),
                 source: WeatherSourceMetadata(
                     provider: .nwsForecast,
@@ -323,7 +325,8 @@ enum NWSMapper {
                     validatedAt: fetchedAt
                 ),
                 messageType: nonEmpty(feature.properties.messageType),
-                referencedIDs: feature.properties.references?.map(\.id)
+                referencedIDs: feature.properties.references?.map(\.id),
+                areas: nonEmpty(feature.properties.areaDesc)
             )
         }
         .sorted { lhs, rhs in
