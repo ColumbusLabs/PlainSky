@@ -5,7 +5,7 @@ Prepared September 29, 2026 for the English (U.S.) listing.
 ## App information
 
 - Name: PlainSky
-- Subtitle: Weather, radar & alerts. Free.
+- Subtitle: NWS forecasts, radar & alerts
 - Primary category: Weather
 - Price: Free in every configured storefront. No in-app purchases, subscriptions, ads, or paid feature tiers.
 - Age rating: Apple calculated 4+ from the completed content questionnaire. This is a general-audience weather app, not a Kids category app.
@@ -14,6 +14,8 @@ Prepared September 29, 2026 for the English (U.S.) listing.
 - Source: https://github.com/ColumbusLabs/PlainSky
 - Support: https://github.com/ColumbusLabs/PlainSky/blob/main/docs/SUPPORT.md
 - Privacy policy: https://github.com/ColumbusLabs/PlainSky/blob/main/docs/PRIVACY.md
+
+Name, subtitle, and keywords must not reference price, including "free" (App Review Guideline 2.3.7, cited when 1.0.0 (4) was rejected). Price messaging belongs only in the promotional text and description.
 
 ## Promotional text
 
@@ -44,7 +46,7 @@ PlainSky requires iOS 17 or later and an internet connection for fresh weather d
 
 ## Keywords
 
-forecast,radar,NOAA,NWS,rain,temperature,storm,alerts,widget,precipitation,free,ad-free
+forecast,radar,NOAA,NWS,rain,temperature,storm,alerts,widget,precipitation,hourly,ad-free
 
 ## License
 
@@ -68,7 +70,8 @@ The app uses standard operating-system HTTPS/TLS and does not implement propriet
 - The English listing, Weather category, 4+ content questionnaire, and manual release setting are saved in App Store Connect.
 - Today, Forecast, and Radar screenshots at 1320 × 2868 are uploaded and have `COMPLETE` processing status.
 - All 122 unit tests pass. The 1.0.0 (3) archive includes the revised app/widget privacy manifests, client-side alert-coordinate rounding, alert-registration removal, and Apple Weather attribution.
-- Apple processed 1.0.0 (3) as `VALID` and `APP_STORE_ELIGIBLE`; build 3 is selected for this App Store version. The version remains `PREPARE_FOR_SUBMISSION` with manual release enabled.
+- Apple processed 1.0.0 (3) as `VALID` and `APP_STORE_ELIGIBLE`. Build 1.0.0 (4) was later selected and submitted for review with manual release enabled.
+- App Review rejected 1.0.0 (4) under Guideline 2.3.7 because the subtitle referenced price ("Free."). The fix is metadata-only; the subtitle and keywords above remove the price references.
 - Public privacy and support documents are published in this repository; both URLs are saved and verified in App Store Connect.
 - The App Review contact details and final review notes are saved and verified in App Store Connect. Private contact details are not included in this repository.
 - The App Privacy questionnaire is fully entered and saved: Coarse Location, Device ID, and Other Data Types; App Functionality only; linked to the device; no tracking. Apple's final Publish attestation is pending owner approval.
@@ -78,4 +81,4 @@ The app uses standard operating-system HTTPS/TLS and does not implement propriet
 
 - Apply the saved App Privacy responses after owner approval of Apple's final accuracy, compliance, and ongoing-update attestation.
 - Validate the final signed build's WeatherKit products and attribution on a physical iPhone. The connected iPhone still had 1.0.0 (2) when checked on September 29, 2026.
-- Run Apple's final Add for Review validation only when the owner authorizes that step. It has deliberately not been run, and the version remains Prepare for Submission.
+- Save the revised subtitle and keywords in App Store Connect, then resubmit 1.0.0 (4) for review when the owner authorizes it.
