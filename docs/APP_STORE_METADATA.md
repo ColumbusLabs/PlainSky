@@ -66,7 +66,7 @@ The app uses standard operating-system HTTPS/TLS and does not implement propriet
 
 ## Historical preparation and review record
 
-These observations were recorded during September 29–October 9, 2026 preparation and review. Build 4's rejection is historical; `project.yml` now records build 6. Recheck App Store Connect for the current build, review state, metadata, privacy disclosures, and release setting.
+These observations were recorded during September 29–October 9, 2026 preparation and review. Build 4's rejection is historical; `project.yml` records the build number for new archives. Recheck App Store Connect for the current build, review state, metadata, privacy disclosures, and release setting.
 
 - Free pricing is configured across all 175 current storefronts, with new territories enabled.
 - The English listing, Weather category, 4+ content questionnaire, and manual release setting are saved in App Store Connect.
