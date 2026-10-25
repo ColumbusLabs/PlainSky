@@ -10,6 +10,16 @@ struct ForecastView: View {
 
     private let topPadding: CGFloat = 4
     private let bottomPadding: CGFloat = 24
+    private let topID = "forecast-top"
+
+    /// Whether the selected mode is showing its forecast rather than a loading
+    /// or unavailable card.
+    private var showsForecastData: Bool {
+        switch router.forecastMode {
+        case .daily: store.screenState.daily.value != nil
+        case .hourly: store.screenState.hourly.value != nil
+        }
+    }
 
     private var mode: Binding<ForecastMode> {
         Binding(
@@ -23,47 +33,62 @@ struct ForecastView: View {
             WeatherBackdrop(style: .current(for: store.screenState))
 
             GeometryReader { proxy in
-                ScrollView {
-                    VStack(spacing: WeatherTheme.sectionSpacing) {
+                ScrollViewReader { scroller in
+                    ScrollView {
                         VStack(spacing: WeatherTheme.sectionSpacing) {
-                            header
-                                .padding(.bottom, 10)
+                            VStack(spacing: WeatherTheme.sectionSpacing) {
+                                header
+                                    .padding(.bottom, 10)
 
-                            if let source = store.screenState.current.validation?.source,
-                               source.provider == .weatherKit,
-                               source.attributionLegalURL != nil {
-                                WeatherCard {
-                                    WeatherProviderAttributionView(metadata: source)
+                                if let source = store.screenState.current.validation?.source,
+                                   source.provider == .weatherKit,
+                                   source.attributionLegalURL != nil {
+                                    WeatherCard {
+                                        WeatherProviderAttributionView(metadata: source)
+                                    }
+                                }
+
+                                ForecastModePicker(selection: mode)
+
+                                RefreshErrorBanner()
+                            }
+                            .background {
+                                GeometryReader { chrome in
+                                    Color.clear.onChange(of: chrome.size.height, initial: true) { _, height in
+                                        chromeHeight = height
+                                    }
                                 }
                             }
 
-                            ForecastModePicker(selection: mode)
-
-                            RefreshErrorBanner()
+                            forecastContent(
+                                // Wait for the first measurement so rows don't flash oversized.
+                                availableHeight: chromeHeight > 0
+                                    ? proxy.size.height - topPadding - bottomPadding
+                                        - chromeHeight - WeatherTheme.sectionSpacing
+                                    : 0
+                            )
                         }
-                        .background {
-                            GeometryReader { chrome in
-                                Color.clear.onChange(of: chrome.size.height, initial: true) { _, height in
-                                    chromeHeight = height
-                                }
-                            }
-                        }
-
-                        forecastContent(
-                            // Wait for the first measurement so rows don't flash oversized.
-                            availableHeight: chromeHeight > 0
-                                ? proxy.size.height - topPadding - bottomPadding
-                                    - chromeHeight - WeatherTheme.sectionSpacing
-                                : 0
-                        )
+                        .padding(.horizontal, WeatherTheme.horizontalPadding)
+                        .padding(.top, topPadding)
+                        .padding(.bottom, bottomPadding)
+                        .id(topID)
                     }
-                    .padding(.horizontal, WeatherTheme.horizontalPadding)
-                    .padding(.top, topPadding)
-                    .padding(.bottom, bottomPadding)
-                }
-                .scrollIndicators(.hidden)
-                .refreshable {
-                    await store.refresh()
+                    .scrollIndicators(.hidden)
+                    .refreshable {
+                        await store.refresh()
+                    }
+                    // The content can collapse to a single card while scrolled far down:
+                    // a refresh swaps the hourly list for a loading card, or "See all"
+                    // on Today switches to the shorter daily list. The scroll view keeps
+                    // the old offset and shows only the backdrop, so return to the top.
+                    .onChange(of: showsForecastData) { _, showsData in
+                        if !showsData {
+                            scroller.scrollTo(topID, anchor: .top)
+                        }
+                    }
+                    .onChange(of: router.forecastMode) { _, _ in
+                        scroller.scrollTo(topID, anchor: .top)
+                    }
                 }
             }
         }
