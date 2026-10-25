@@ -4,9 +4,12 @@ struct ForecastView: View {
     @Environment(WeatherStore.self) private var store
     @Environment(AppRouter.self) private var router
 
-    /// Height of the header plus the full 7-day list. Hourly mode reuses it so
-    /// the header stays put when switching modes.
-    @State private var dailyContentHeight: CGFloat = 560
+    /// Height of everything above the forecast content. The daily list uses the
+    /// rest of the screen so its rows fill the space on any phone size.
+    @State private var chromeHeight: CGFloat = 0
+
+    private let topPadding: CGFloat = 4
+    private let bottomPadding: CGFloat = 24
 
     private var mode: Binding<ForecastMode> {
         Binding(
@@ -21,38 +24,42 @@ struct ForecastView: View {
 
             GeometryReader { proxy in
                 ScrollView {
-                    LazyVStack(spacing: WeatherTheme.sectionSpacing) {
-                        header
-                            .padding(.bottom, 10)
+                    VStack(spacing: WeatherTheme.sectionSpacing) {
+                        VStack(spacing: WeatherTheme.sectionSpacing) {
+                            header
+                                .padding(.bottom, 10)
 
-                        if let source = store.screenState.current.validation?.source,
-                           source.provider == .weatherKit,
-                           source.attributionLegalURL != nil {
-                            WeatherCard {
-                                WeatherProviderAttributionView(metadata: source)
+                            if let source = store.screenState.current.validation?.source,
+                               source.provider == .weatherKit,
+                               source.attributionLegalURL != nil {
+                                WeatherCard {
+                                    WeatherProviderAttributionView(metadata: source)
+                                }
                             }
+
+                            ForecastModePicker(selection: mode)
+
+                            RefreshErrorBanner()
                         }
-
-                        ForecastModePicker(selection: mode)
-
-                        RefreshErrorBanner()
-
-                        forecastContent
-                    }
-                    .background {
-                        GeometryReader { content in
-                            Color.clear.onChange(of: content.size.height, initial: true) { _, height in
-                                if router.forecastMode == .daily, store.screenState.daily.value != nil {
-                                    dailyContentHeight = height
+                        .background {
+                            GeometryReader { chrome in
+                                Color.clear.onChange(of: chrome.size.height, initial: true) { _, height in
+                                    chromeHeight = height
                                 }
                             }
                         }
+
+                        forecastContent(
+                            // Wait for the first measurement so rows don't flash oversized.
+                            availableHeight: chromeHeight > 0
+                                ? proxy.size.height - topPadding - bottomPadding
+                                    - chromeHeight - WeatherTheme.sectionSpacing
+                                : 0
+                        )
                     }
                     .padding(.horizontal, WeatherTheme.horizontalPadding)
-                    // Center the daily layout vertically so the header clears the
-                    // sun in the sky image and the gap above matches the gap below.
-                    .padding(.top, max(8, (proxy.size.height - dailyContentHeight) / 2))
-                    .padding(.bottom, 24)
+                    .padding(.top, topPadding)
+                    .padding(.bottom, bottomPadding)
                 }
                 .scrollIndicators(.hidden)
                 .refreshable {
@@ -65,11 +72,11 @@ struct ForecastView: View {
     }
 
     @ViewBuilder
-    private var forecastContent: some View {
+    private func forecastContent(availableHeight: CGFloat) -> some View {
         switch router.forecastMode {
         case .daily:
             if let daily = store.screenState.daily.value {
-                DailyForecastList(items: daily)
+                DailyForecastList(items: daily, minimumHeight: availableHeight)
             } else if store.screenState.daily.isLoading {
                 WeatherLoadingCard(title: "Loading daily forecast")
             } else {

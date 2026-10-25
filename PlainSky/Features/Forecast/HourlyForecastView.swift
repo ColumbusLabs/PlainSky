@@ -54,6 +54,7 @@ struct HourlyForecastView: View {
                     HourlyDetailRows(
                         items: visibleItems,
                         unitSystem: store.unitSystem,
+                        solar: store.screenState.solarEvents.value,
                         onSelect: { selectedHour = $0 }
                     )
                 }
@@ -129,8 +130,12 @@ struct HourlyForecastView: View {
 }
 
 struct HourlyDetailRows: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .subheadline) private var timeWidth: CGFloat = 70
+
     let items: [HourlyForecastItem]
     let unitSystem: WeatherUnitSystem
+    var solar: SolarWeather?
     var onSelect: ((HourlyForecastItem) -> Void)?
 
     var body: some View {
@@ -162,14 +167,17 @@ struct HourlyDetailRows: View {
         index: Int,
         showsChevron: Bool
     ) -> some View {
-        HStack(spacing: 12) {
+        let isDaytime = WeatherDaylight.isDaytime(item.date, solar: solar)
+
+        return HStack(spacing: 8) {
             Text(WeatherFormatters.hour(item.date))
                 .font(.subheadline)
                 .foregroundStyle(WeatherTheme.primaryText)
-                .frame(width: 62, alignment: .leading)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(width: timeWidth, alignment: .leading)
 
-            Image(systemName: item.condition.symbolName)
-                .symbolRenderingMode(.multicolor)
+            ConditionIcon(condition: item.condition, isDaytime: isDaytime, size: 20)
                 .frame(width: 28)
 
             Text(
@@ -180,8 +188,25 @@ struct HourlyDetailRows: View {
             )
             .font(.headline.monospacedDigit())
             .foregroundStyle(WeatherTheme.primaryText)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .frame(width: 42, alignment: .leading)
 
-            Spacer()
+            // The condition fills the middle of the row when there's room for it,
+            // and drops out on narrow phones or large text instead of truncating.
+            if dynamicTypeSize < .xLarge {
+                ViewThatFits(in: .horizontal) {
+                    Text(item.condition.displayName(isDaytime: isDaytime))
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(WeatherTheme.secondaryText)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Spacer(minLength: 0)
+                }
+            } else {
+                Spacer(minLength: 0)
+            }
 
             Label(
                 WeatherFormatters.percent(item.precipitationChance),
@@ -189,7 +214,8 @@ struct HourlyDetailRows: View {
             )
             .font(.caption)
             .foregroundStyle(WeatherTheme.accent)
-            .frame(width: 58, alignment: .trailing)
+            .lineLimit(1)
+            .frame(width: 48, alignment: .trailing)
 
             Text(
                 WeatherFormatters.wind(
@@ -200,7 +226,8 @@ struct HourlyDetailRows: View {
             )
             .font(.caption.monospacedDigit())
             .foregroundStyle(WeatherTheme.secondaryText)
-            .frame(width: unitSystem == .us ? 54 : 68, alignment: .trailing)
+            .lineLimit(1)
+            .frame(width: unitSystem == .us ? 50 : 64, alignment: .trailing)
 
             if showsChevron {
                 Image(systemName: "chevron.right")

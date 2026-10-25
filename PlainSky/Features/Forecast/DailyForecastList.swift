@@ -2,6 +2,15 @@ import SwiftUI
 
 struct DailyForecastList: View {
     let items: [DailyForecastItem]
+    /// Height the list should grow to fill. Rows stretch evenly to reach it but
+    /// never shrink below their natural height.
+    var minimumHeight: CGFloat = 0
+
+    private var minimumRowHeight: CGFloat {
+        guard !items.isEmpty else { return 0 }
+        let dividers = CGFloat(items.count - 1)
+        return max(0, (minimumHeight - dividers) / CGFloat(items.count))
+    }
 
     var body: some View {
         WeatherCard(padding: 0) {
@@ -11,6 +20,8 @@ struct DailyForecastList: View {
                         DayForecastDetailView(day: item)
                     } label: {
                         DailyForecastRow(item: item)
+                            .frame(minHeight: minimumRowHeight)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
 
